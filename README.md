@@ -1,0 +1,2 @@
+# wishdeck
+Vibecoded wishlist system
