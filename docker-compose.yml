@@ -1,0 +1,74 @@
+# docker-compose.yml — production-ready multi-container WishDeck stack.
+#
+# 12-Factor notes:
+#   * Backend is stateless (JWT in HTTP-only cookie); no session on disk.
+#   * Persistent state lives only in the `db-data` (SQLite WAL) and `media`
+#     named volumes — never inside the container image.
+#   * Every tunable is overridable via environment variables (Layer 2) which
+#     take precedence over the UI-editable system_settings table (Layer 1).
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: wishdeck/backend:latest
+    restart: unless-stopped
+    environment:
+      # --- Infrastructure (not UI-editable) ---
+      DATABASE_URL: "sqlite+aiosqlite:///./data/wishdeck.db"
+      SECRET_KEY: "${SECRET_KEY:-change-me-please}"
+      ENVIRONMENT: "${ENVIRONMENT:-production}"
+      BASE_URL: "${BASE_URL:-http://localhost}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      # --- Feature / auth settings (ENV overrides UI) ---
+      ENABLE_REGISTRATION: "${ENABLE_REGISTRATION:-true}"
+      DEFAULT_LOCALE: "${DEFAULT_LOCALE:-sv}"
+      DEFAULT_VISIBILITY: "${DEFAULT_VISIBILITY:-private}"
+      ALLOW_PUBLIC_CLAIMS: "${ALLOW_PUBLIC_CLAIMS:-true}"
+      DEFAULT_CURRENCY: "${DEFAULT_CURRENCY:-SEK}"
+      # --- OIDC (mixed mode; leave blank to disable) ---
+      OIDC_ENABLED: "${OIDC_ENABLED:-false}"
+      OIDC_ISSUER_URL: "${OIDC_ISSUER_URL:-}"
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_NAME: "${OIDC_NAME:-SSO}"
+      OIDC_SCOPES: "${OIDC_SCOPES:-openid email profile}"
+    volumes:
+      - db-data:/app/data          # SQLite WAL files
+      - media-data:/app/media      # uploaded images
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: wishdeck/frontend:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Dev server (port 9000) runs inside the container; the API lives at `backend:8000`.
+      API_PROXY_TARGET: "http://backend:8000"
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  db-data:
+    driver: local
+  media-data:
+    driver: local

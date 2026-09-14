@@ -1,0 +1,41 @@
+{
+  "name": "wishdeck-frontend",
+  "version": "1.0.0",
+  "description": "WishDeck Quasar PWA frontend",
+  "productName": "WishDeck",
+  "author": "WishDeck",
+  "private": true,
+  "scripts": {
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "lint": "eslint --ext .js,.ts,.vue src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.0",
+    "axios": "^1.7.0",
+    "pinia": "^2.2.0",
+    "quasar": "^2.16.0",
+    "vue": "^3.4.0",
+    "vue-i18n": "^9.13.0",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^1.9.0",
+    "@types/node": "^20.0.0",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">= 18.0.0",
+    "npm": ">= 9.0.0"
+  },
+  "browserslist": [
+    "last 10 Chrome versions",
+    "last 10 Firefox versions",
+    "last 4 Edge versions",
+    "last 10 Safari versions"
+  ]
+}

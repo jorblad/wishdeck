@@ -1,0 +1,30 @@
+services:
+  backend:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      ENVIRONMENT: "development"
+      LOG_LEVEL: "DEBUG"
+    volumes:
+      - ./backend/app:/app/app
+      - db-data:/app/data
+      - media-data:/app/media
+    # Expose the API directly for local debugging / Swagger UI.
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    command: ["sh", "-c", "npm install && quasar dev --host 0.0.0.0 --port 9000"]
+    environment:
+      DEV: "1"
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules   # keep container's alpine node_modules (not the host's)
+
+volumes:
+  db-data:
+  media-data:

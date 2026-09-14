@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / Quasar
+node_modules/
+dist/
+.quasar/
+npm-debug.log*
+
+# Env / secrets / runtime data
+.env
+.env.local
+backend/data/
+backend/media/
+*.db
+*.sqlite3
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# E2E
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+playwright/.cache/
+
+# Build / coverage / logs
+coverage/
+.coverage
+htmlcov/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+
+# Local env overrides (keep examples committed)
+.env.*
+!.env.example
+
+# Tooling caches
+.renovaterc*
+.eslintcache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
