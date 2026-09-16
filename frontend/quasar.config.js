@@ -6,7 +6,7 @@ const API_PROXY_TARGET = process.env.API_PROXY_TARGET || 'http://localhost:8000'
 module.exports = function (ctx) {
   return {
       boot: ['pinia', 'i18n', 'axios', 'dark'],
-    css: ['app.css'],
+    css: [],
     extras: ['material-icons'],
     framework: {
       config: {},
@@ -16,6 +16,19 @@ module.exports = function (ctx) {
       target: { browser: ['es2022', 'firefox115', 'chrome115', 'safari13'] },
       vueRouterMode: 'history',
       publicPath: '/',
+      // @quasar/app-vite v3 dropped the auto-aliases for src subfolders
+      // (stores/components/pages/boot/layouts/router/assets). Re-add them so
+      // the existing `import ... from 'stores/auth'`-style imports keep working.
+      alias: {
+        stores: ctx.appPaths.srcDir + '/stores',
+        components: ctx.appPaths.srcDir + '/components',
+        pages: ctx.appPaths.srcDir + '/pages',
+        layouts: ctx.appPaths.srcDir + '/layouts',
+        boot: ctx.appPaths.srcDir + '/boot',
+        router: ctx.appPaths.srcDir + '/router',
+        assets: ctx.appPaths.srcDir + '/assets',
+        src: ctx.appPaths.srcDir,
+      },
       env: {
         // Empty = same-origin. In prod nginx proxies /api; in dev Vite proxies it
         // (see devServer.proxy). Override with API_BASE only for advanced setups.
