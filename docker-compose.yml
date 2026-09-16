@@ -34,6 +34,8 @@ services:
       OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
       OIDC_NAME: "${OIDC_NAME:-SSO}"
       OIDC_SCOPES: "${OIDC_SCOPES:-openid email profile}"
+      # Secure auth cookie (default on). Set COOKIE_SECURE=false in non-TLS dev/e2e.
+      COOKIE_SECURE: "${COOKIE_SECURE:-true}"
     volumes:
       - db-data:/app/data          # SQLite WAL files
       - media-data:/app/media      # uploaded images

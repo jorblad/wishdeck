@@ -61,10 +61,15 @@ jobs:
         with:
           node-version: "20"
       - name: Build & start stack
-        run: docker compose up -d --build
+        # Use only the base compose so the production (nginx) image is built,
+        # not the local dev override which runs the Vite dev server on :9000.
+        env:
+          # Auth cookie must not be Secure so the browser keeps it over http://localhost:8080.
+          COOKIE_SECURE: "false"
+        run: docker compose -f docker-compose.yml up -d --build
       - name: Wait for API health
         run: |
-          for i in $(seq 1 40); do
+          for i in $(seq 1 60); do
             if curl -fsS http://localhost:8080/api/v1/healthz >/dev/null; then
               echo "API is up"; break
             fi
@@ -79,6 +84,9 @@ jobs:
       - name: Run E2E tests
         working-directory: e2e
         run: npx playwright test
+      - name: Dump stack logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml logs --no-color
       - name: Tear down
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml down -v
