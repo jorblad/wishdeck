@@ -17,7 +17,7 @@ EXPOSE 9000
 CMD ["sh", "-c", "npm install && quasar dev --host 0.0.0.0 --port 9000"]
 
 # ---- Runtime (production) stage ----
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 COPY --from=build /app/dist/spa /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
