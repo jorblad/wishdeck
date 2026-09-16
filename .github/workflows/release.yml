@@ -63,9 +63,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add backend/app/core/config.py frontend/package.json
-          git commit -m "chore: release ${{ steps.version.outputs.tag }}"
+          # The version files may already match the computed version (e.g. the
+          # very first release, where they ship at 1.0.0). Only commit when the
+          # bump actually changed something, otherwise the workflow would abort
+          # with "nothing to commit" before tagging / building / releasing.
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: release ${{ steps.version.outputs.tag }}"
+            git push origin HEAD
+          else
+            echo "Version files already at ${{ steps.version.outputs.version }} — nothing to commit."
+          fi
           git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
-          git push origin HEAD
           git push origin "${{ steps.version.outputs.tag }}"
 
       - name: Set up QEMU
