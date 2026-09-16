@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h5 q-mb-md">My Wishlists</div>
+    <div class="text-h5 q-mb-md">{{ $t('index.myWishlists') }}</div>
     <q-btn
       v-if="auth.isAuthenticated"
       color="primary"

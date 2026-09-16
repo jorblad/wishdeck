@@ -30,6 +30,30 @@ export default {
     login: 'Login',
     logout: 'Logout',
   },
+  login: {
+    signIn: 'Sign in',
+    email: 'Email',
+    fullName: 'Full name',
+    usernameOptional: 'Username (optional)',
+    password: 'Password',
+    login: 'Login',
+    createAccount: 'Create account',
+    createAnAccount: 'Create an account',
+    haveAccount: 'Have an account? Sign in',
+    sso: 'SSO',
+  },
+  index: {
+    myWishlists: 'My Wishlists',
+  },
+  error: {
+    notFound: '404 — Page not found',
+    goHome: 'Go home',
+  },
+  visibility: {
+    private: 'Private',
+    unlisted: 'Unlisted',
+    public: 'Public',
+  },
   theme: {
     toggle: 'Toggle theme (auto / light / dark)',
   },
@@ -48,6 +72,7 @@ export default {
     copyFailed: 'Could not copy link',
     claim: 'Claim',
     allowClaims: 'Allow others to claim items',
+    uncategorized: 'Uncategorized',
     status: {
       open: 'Open',
       claimed: 'Claimed',
@@ -95,6 +120,7 @@ export default {
     readOnlyHint: 'You do not have permission to edit settings.',
     noEnvOverrides: 'No settings are currently managed by environment variables.',
     managedViaEnv: 'Managed via environment variable — editing disabled',
+    env: 'ENV',
     loadError: 'Could not load settings: {error}',
     groups: {
       general: 'General',

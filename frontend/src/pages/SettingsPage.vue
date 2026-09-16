@@ -54,7 +54,7 @@
                 <q-badge
                   v-if="s.is_env_overridden"
                   color="deep-purple"
-                  label="ENV"
+                  :label="t('settings.env')"
                   class="cursor-pointer"
                 >
                   <q-tooltip>{{ t('settings.managedViaEnv') }}</q-tooltip>
@@ -171,9 +171,9 @@ const hasChanges = computed(() =>
 const anyEnvOverrides = computed(() => hasEnvOverrides(settings.value));
 
 const visibilityOptions = [
-  { label: 'Private', value: 'private' },
-  { label: 'Unlisted', value: 'unlisted' },
-  { label: 'Public', value: 'public' },
+  { label: t('visibility.private'), value: 'private' },
+  { label: t('visibility.unlisted'), value: 'unlisted' },
+  { label: t('visibility.public'), value: 'public' },
 ];
 const localeOptions = [
   { label: 'English', value: 'en' },

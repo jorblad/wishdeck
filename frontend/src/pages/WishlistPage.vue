@@ -76,7 +76,7 @@
         </q-list>
       </q-expansion-item>
     </template>
-    <div v-else class="text-center text-grey">Not found</div>
+    <div v-else class="text-center text-grey">{{ t('wishlist.notFound') }}</div>
 
     <WishlistEditDialog
       v-model="editDialog.open"
@@ -211,7 +211,7 @@ const grouped = computed(() => {
   if (!wishlist.value) return [];
   const map = {};
   for (const item of wishlist.value.items || []) {
-    const name = item.category_id || 'Uncategorized';
+    const name = item.category_id || t('wishlist.uncategorized');
     (map[name] ||= { name, items: [] }).items.push(item);
   }
   return Object.values(map);

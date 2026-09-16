@@ -30,6 +30,30 @@ export default {
     login: 'Logga in',
     logout: 'Logga ut',
   },
+  login: {
+    signIn: 'Logga in',
+    email: 'E-post',
+    fullName: 'Fullständigt namn',
+    usernameOptional: 'Användarnamn (valfritt)',
+    password: 'Lösenord',
+    login: 'Logga in',
+    createAccount: 'Skapa konto',
+    createAnAccount: 'Skapa ett konto',
+    haveAccount: 'Har du ett konto? Logga in',
+    sso: 'SSO',
+  },
+  index: {
+    myWishlists: 'Mina önskelistor',
+  },
+  error: {
+    notFound: '404 — Sidan hittades inte',
+    goHome: 'Till startsidan',
+  },
+  visibility: {
+    private: 'Privat',
+    unlisted: 'Olistad',
+    public: 'Offentlig',
+  },
   theme: {
     toggle: 'Växla tema (auto / ljust / mörkt)',
   },
@@ -48,6 +72,7 @@ export default {
     copyFailed: 'Kunde inte kopiera länk',
     claim: 'Reservera',
     allowClaims: 'Tillåt andra att reservera saker',
+    uncategorized: 'Okategoriserad',
     status: {
       open: 'Öppen',
       claimed: 'Reserverad',
@@ -95,6 +120,7 @@ export default {
     readOnlyHint: 'Du har inte behörighet att ändra inställningar.',
     noEnvOverrides: 'Inga inställningar hanteras för närvarande via miljövariabler.',
     managedViaEnv: 'Hanteras via miljövariabel — redigering inaktiverad',
+    env: 'ENV',
     loadError: 'Kunde inte ladda inställningar: {error}',
     groups: {
       general: 'Allmänt',

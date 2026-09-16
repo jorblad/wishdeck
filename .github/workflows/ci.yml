@@ -66,6 +66,8 @@ jobs:
         env:
           # Auth cookie must not be Secure so the browser keeps it over http://localhost:8080.
           COOKIE_SECURE: "false"
+          # Run the e2e suite against the English UI (the tests assert English strings).
+          DEFAULT_LOCALE: "en"
         run: docker compose -f docker-compose.yml up -d --build
       - name: Wait for API health
         run: |

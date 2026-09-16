@@ -4,25 +4,25 @@
       <q-page class="q-pa-md flex flex-center">
         <q-card style="width: 380px; max-width: 90vw">
           <q-card-section>
-            <div class="text-h6">Sign in</div>
+            <div class="text-h6">{{ t('login.signIn') }}</div>
           </q-card-section>
 
           <q-card-section>
             <q-form @submit.prevent="mode === 'login' ? localLogin() : localRegister()">
-              <q-input v-model="email" label="Email" type="email" autofocus />
-              <q-input v-if="mode === 'register'" v-model="fullName" label="Full name" class="q-mt-sm" />
+              <q-input v-model="email" :label="t('login.email')" type="email" autofocus />
+              <q-input v-if="mode === 'register'" v-model="fullName" :label="t('login.fullName')" class="q-mt-sm" />
               <q-input
                 v-if="mode === 'register'"
                 v-model="username"
-                label="Username (optional)"
+                :label="t('login.usernameOptional')"
                 class="q-mt-sm"
               />
-              <q-input v-model="password" label="Password" type="password" class="q-mt-sm" />
+              <q-input v-model="password" :label="t('login.password')" type="password" class="q-mt-sm" />
               <q-btn
                 type="submit"
                 color="primary"
                 class="full-width q-mt-md"
-                :label="mode === 'login' ? 'Login' : 'Create account'"
+                :label="mode === 'login' ? t('login.login') : t('login.createAccount')"
                 :loading="loading"
               />
             </q-form>
@@ -31,7 +31,7 @@
               <q-btn
                 flat
                 dense
-                :label="mode === 'login' ? 'Create an account' : 'Have an account? Sign in'"
+                :label="mode === 'login' ? t('login.createAnAccount') : t('login.haveAccount')"
                 @click="mode = mode === 'login' ? 'register' : 'login'"
               />
             </div>
@@ -42,7 +42,7 @@
                 outline
                 color="secondary"
                 class="full-width"
-                :label="`Continue with ${oidc.name || 'SSO'}`"
+                :label="`Continue with ${oidc.name || t('login.sso')}`"
                 @click="startOidc"
               />
             </template>
@@ -56,8 +56,11 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const auth = useAuthStore();
