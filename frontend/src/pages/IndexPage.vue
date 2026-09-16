@@ -6,6 +6,7 @@
       color="primary"
       icon="add"
       :label="$t('menu.newWishlist')"
+      data-testid="new-wishlist"
       @click="createWishlist"
     />
 

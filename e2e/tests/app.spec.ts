@@ -40,7 +40,7 @@ test.describe('WishDeck public surface', () => {
     // Lands on the dashboard after auto-login.
     await expect(page.getByText('My Wishlists')).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('button', { name: 'New wishlist' }).click();
+    await page.getByTestId('new-wishlist').click();
     await expect(page).toHaveURL(/\/wishlists\//);
   });
 });
