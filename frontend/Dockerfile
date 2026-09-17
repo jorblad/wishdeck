@@ -15,7 +15,7 @@ COPY package.json package-lock.json ./
 RUN npm install -g @quasar/cli && npm install --legacy-peer-deps
 COPY . .
 EXPOSE 9000
-CMD ["sh", "-c", "npm install --legacy-peer-deps && quasar dev --host 0.0.0.0 --port 9000"]
+CMD ["sh", "-c", "npm install --legacy-peer-deps && quasar dev --hostname 0.0.0.0 --port 9000"]
 
 # ---- Runtime (production) stage ----
 FROM nginx:1.31-alpine AS runtime
