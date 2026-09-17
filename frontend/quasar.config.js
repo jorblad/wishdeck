@@ -29,11 +29,6 @@ module.exports = function (ctx) {
         assets: ctx.appPaths.srcDir + '/assets',
         src: ctx.appPaths.srcDir,
       },
-      env: {
-        // Empty = same-origin. In prod nginx proxies /api; in dev Vite proxies it
-        // (see devServer.proxy). Override with API_BASE only for advanced setups.
-        API_BASE: process.env.API_BASE || '',
-      },
     },
     devServer: {
       port: 9000,
