@@ -50,6 +50,18 @@ export default {
   },
   index: {
     myWishlists: 'Mina önskelistor',
+    sort: {
+      label: 'Sortera efter',
+      newest: 'Nyast först',
+      oldest: 'Äldst först',
+      titleAsc: 'Titel A–Ö',
+      titleDesc: 'Titel Ö–A',
+    },
+    filter: {
+      all: 'Alla',
+      visibility: 'Synlighet',
+      archived: 'Inkludera arkiverade',
+    },
   },
   error: {
     notFound: '404 — Sidan hittades inte',
@@ -81,6 +93,20 @@ export default {
     allowClaims: 'Tillåt andra att reservera saker',
     uncategorized: 'Okategoriserad',
     loadFailed: 'Kunde inte ladda önskelistan',
+    notFound: 'Önskelistan hittades inte',
+    sort: {
+      label: 'Sortera saker efter',
+      priority: 'Prioritet',
+      priceAsc: 'Pris: lågt till högt',
+      priceDesc: 'Pris: högt till lågt',
+      title: 'Titel',
+    },
+    filter: {
+      category: 'Kategori',
+      status: 'Status',
+      allCategories: 'Alla kategorier',
+      allStatuses: 'Alla statusar',
+    },
     status: {
       open: 'Öppen',
       claimed: 'Reserverad',

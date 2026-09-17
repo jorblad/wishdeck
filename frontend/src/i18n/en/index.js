@@ -50,6 +50,18 @@ export default {
   },
   index: {
     myWishlists: 'My Wishlists',
+    sort: {
+      label: 'Sort by',
+      newest: 'Newest first',
+      oldest: 'Oldest first',
+      titleAsc: 'Title A–Z',
+      titleDesc: 'Title Z–A',
+    },
+    filter: {
+      all: 'All',
+      visibility: 'Visibility',
+      archived: 'Include archived',
+    },
   },
   error: {
     notFound: '404 — Page not found',
@@ -81,6 +93,20 @@ export default {
     allowClaims: 'Allow others to claim items',
     uncategorized: 'Uncategorized',
     loadFailed: 'Could not load wishlist',
+    notFound: 'Wishlist not found',
+    sort: {
+      label: 'Sort items by',
+      priority: 'Priority',
+      priceAsc: 'Price: low to high',
+      priceDesc: 'Price: high to low',
+      title: 'Title',
+    },
+    filter: {
+      category: 'Category',
+      status: 'Status',
+      allCategories: 'All categories',
+      allStatuses: 'All statuses',
+    },
     status: {
       open: 'Open',
       claimed: 'Claimed',

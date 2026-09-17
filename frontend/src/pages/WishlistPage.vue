@@ -26,6 +26,7 @@
           <q-tooltip>{{ t('quickAdd.add') }}</q-tooltip>
         </q-btn>
         <q-btn
+          v-if="isOwner"
           flat
           round
           dense
@@ -50,6 +51,44 @@
         {{ t('wishlist.privateShareHint') }}
       </div>
       <div class="text-caption q-mb-md">{{ wishlist.description }}</div>
+
+      <div class="row q-col-gutter-sm q-mb-md">
+        <div class="col-12 col-sm-4">
+          <q-select
+            v-model="itemSortBy"
+            :options="itemSortOptions"
+            :label="t('wishlist.sort.label')"
+            dense
+            outlined
+            emit-value
+            map-options
+          />
+        </div>
+        <div class="col-12 col-sm-4">
+          <q-select
+            v-model="itemFilterCategory"
+            :options="categoryFilterOptions"
+            :label="t('wishlist.filter.category')"
+            dense
+            outlined
+            emit-value
+            map-options
+            clearable
+          />
+        </div>
+        <div class="col-12 col-sm-4">
+          <q-select
+            v-model="itemFilterStatus"
+            :options="statusFilterOptions"
+            :label="t('wishlist.filter.status')"
+            dense
+            outlined
+            emit-value
+            map-options
+            clearable
+          />
+        </div>
+      </div>
 
       <q-expansion-item
         v-for="cat in grouped"
@@ -206,6 +245,28 @@ const quickAddOpen = ref(false);
 const itemDialog = ref({ open: false, item: null });
 const shareOpen = ref(false);
 const showArchived = ref(false);
+const itemSortBy = ref('priority');
+const itemFilterCategory = ref(null);
+const itemFilterStatus = ref(null);
+
+const itemSortOptions = computed(() => [
+  { label: t('wishlist.sort.priority'), value: 'priority' },
+  { label: t('wishlist.sort.priceAsc'), value: 'priceAsc' },
+  { label: t('wishlist.sort.priceDesc'), value: 'priceDesc' },
+  { label: t('wishlist.sort.title'), value: 'title' },
+]);
+
+const categoryFilterOptions = computed(() => [
+  { label: t('wishlist.filter.allCategories'), value: null },
+  ...(wishlist.value?.categories || []).map((c) => ({ label: c.name, value: c.id })),
+]);
+
+const statusFilterOptions = computed(() => [
+  { label: t('wishlist.filter.allStatuses'), value: null },
+  { label: t('wishlist.status.open'), value: 'open' },
+  { label: t('wishlist.status.claimed'), value: 'claimed' },
+  { label: t('wishlist.status.purchased'), value: 'purchased' },
+]);
 
 const isOwner = computed(
   () => !!wishlist.value && wishlist.value.owner_id === auth.user?.id
@@ -270,9 +331,27 @@ function onItemArchived(item) {
 
 const grouped = computed(() => {
   if (!wishlist.value) return [];
+  let items = (wishlist.value.items || []).filter((item) => {
+    if (item.archived && !showArchived.value) return false;
+    if (itemFilterCategory.value && item.category_id !== itemFilterCategory.value) return false;
+    if (itemFilterStatus.value && item.status !== itemFilterStatus.value) return false;
+    return true;
+  });
+  items = [...items].sort((a, b) => {
+    switch (itemSortBy.value) {
+      case 'priceAsc':
+        return (a.price ?? Infinity) - (b.price ?? Infinity);
+      case 'priceDesc':
+        return (b.price ?? -Infinity) - (a.price ?? -Infinity);
+      case 'title':
+        return a.title.localeCompare(b.title);
+      case 'priority':
+      default:
+        return (b.priority ?? 0) - (a.priority ?? 0);
+    }
+  });
   const map = {};
-  for (const item of wishlist.value.items || []) {
-    if (item.archived && !showArchived.value) continue;
+  for (const item of items) {
     const cat = wishlist.value.categories.find((c) => c.id === item.category_id);
     const name = cat ? cat.name : t('wishlist.uncategorized');
     (map[name] ||= { name, items: [] }).items.push(item);

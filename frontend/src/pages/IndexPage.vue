@@ -10,8 +10,40 @@
       @click="createWishlist"
     />
 
+    <div class="row q-col-gutter-sm q-mt-md">
+      <div class="col-12 col-sm-5">
+        <q-select
+          v-model="sortBy"
+          :options="sortOptions"
+          :label="t('index.sort.label')"
+          dense
+          outlined
+          emit-value
+          map-options
+        />
+      </div>
+      <div class="col-12 col-sm-4">
+        <q-select
+          v-model="filterVisibility"
+          :options="visibilityOptions"
+          :label="t('index.filter.visibility')"
+          dense
+          outlined
+          emit-value
+          map-options
+        />
+      </div>
+      <div class="col-12 col-sm-3">
+        <q-toggle
+          v-model="filterArchived"
+          :label="t('index.filter.archived')"
+          class="q-mt-sm"
+        />
+      </div>
+    </div>
+
     <q-list bordered separator class="q-mt-md">
-      <q-item v-for="wl in wishlists" :key="wl.id">
+      <q-item v-for="wl in filteredWishlists" :key="wl.id">
         <q-item-section clickable @click="open(wl)">
           <q-item-label>{{ wl.title }}</q-item-label>
           <q-item-label caption>{{ wl.visibility }}</q-item-label>
@@ -56,8 +88,9 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
@@ -65,11 +98,51 @@ import QuickAddDialog from 'components/QuickAddDialog.vue';
 import WishlistEditDialog from 'components/WishlistEditDialog.vue';
 
 const router = useRouter();
+const { t } = useI18n();
 const $q = useQuasar();
 const auth = useAuthStore();
 const wishlists = ref([]);
 const quickAdd = ref({ open: false, wishlistId: '', categories: [] });
 const editDialog = ref({ open: false, wishlist: null });
+const sortBy = ref('newest');
+const filterVisibility = ref('all');
+const filterArchived = ref(false);
+
+const sortOptions = computed(() => [
+  { label: t('index.sort.newest'), value: 'newest' },
+  { label: t('index.sort.oldest'), value: 'oldest' },
+  { label: t('index.sort.titleAsc'), value: 'titleAsc' },
+  { label: t('index.sort.titleDesc'), value: 'titleDesc' },
+]);
+
+const visibilityOptions = computed(() => [
+  { label: t('index.filter.all'), value: 'all' },
+  { label: t('visibility.private'), value: 'private' },
+  { label: t('visibility.unlisted'), value: 'unlisted' },
+  { label: t('visibility.public'), value: 'public' },
+]);
+
+const filteredWishlists = computed(() => {
+  let rows = wishlists.value.filter((wl) => {
+    if (filterVisibility.value !== 'all' && wl.visibility !== filterVisibility.value) return false;
+    if (!filterArchived.value && wl.archived) return false;
+    return true;
+  });
+  rows = [...rows].sort((a, b) => {
+    switch (sortBy.value) {
+      case 'oldest':
+        return new Date(a.created_at) - new Date(b.created_at);
+      case 'titleAsc':
+        return a.title.localeCompare(b.title);
+      case 'titleDesc':
+        return b.title.localeCompare(a.title);
+      case 'newest':
+      default:
+        return new Date(b.created_at) - new Date(a.created_at);
+    }
+  });
+  return rows;
+});
 
 async function load() {
   const { data } = await api.get('/wishlists');
