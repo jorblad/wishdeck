@@ -2,16 +2,21 @@
 # Production entrypoint: apply Alembic migrations, then start the API.
 # This makes deploys/upgrades hands-free (no manual `alembic upgrade`).
 #
-# In development the container relies on the app's idempotent create_all
-# (init_db), so we skip Alembic to avoid conflicting with that on the
-# mounted dev database.
+# In development we also run Alembic so schema changes (new columns, etc.)
+# are applied automatically. If an older dev DB has tables but no
+# alembic_version record, we stamp it to the current head first.
 set -e
 
-if [ "${ENVIRONMENT:-production}" != "development" ]; then
-  echo "Running database migrations..."
+if [ "${ENVIRONMENT:-production}" = "development" ]; then
+  echo "Development mode: applying Alembic migrations..."
+  if ! alembic current >/dev/null 2>&1; then
+    echo "No Alembic revision tracked; stamping current head..."
+    alembic stamp head || true
+  fi
   alembic upgrade head
 else
-  echo "Development mode: skipping Alembic (using create_all)."
+  echo "Running database migrations..."
+  alembic upgrade head
 fi
 
 echo "Starting API..."
