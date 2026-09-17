@@ -81,7 +81,7 @@ class WishItem(Base, TimestampMixin):
     price: Mapped[float | None] = mapped_column()
     currency: Mapped[str | None] = mapped_column(String(8))
     priority: Mapped[int] = mapped_column(default=0, nullable=False, index=True)
-    quantity: Mapped[int] = mapped_column(default=1, nullable=False)
+    quantity: Mapped[int | None] = mapped_column(default=None, nullable=True)
     status: Mapped[ClaimStatus] = mapped_column(
         Enum(ClaimStatus), default=ClaimStatus.OPEN, nullable=False
     )

@@ -79,7 +79,15 @@
             <q-input v-model.number="priority" :label="t('quickAdd.priority')" type="number" dense outlined />
           </div>
           <div class="col-6">
-            <q-input v-model.number="quantity" :label="t('quickAdd.quantity')" type="number" dense outlined />
+            <q-input
+              v-model.number="quantity"
+              :label="t('quickAdd.quantity')"
+              type="number"
+              dense
+              outlined
+              clearable
+              :hint="t('quickAdd.quantityHint')"
+            />
           </div>
         </div>
       </q-card-section>
@@ -203,7 +211,7 @@ async function submit() {
       price: price.value ?? null,
       category_id: categoryId.value || null,
       priority: priority.value,
-      quantity: quantity.value,
+      quantity: quantity.value === '' ? null : quantity.value,
     });
     emit('added', data);
     $q.notify({ type: 'positive', message: t('quickAdd.added') });

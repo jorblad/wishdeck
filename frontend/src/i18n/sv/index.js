@@ -21,6 +21,7 @@ export default {
     category: 'Kategori',
     priority: 'Prioritet',
     quantity: 'Antal',
+    quantityHint: 'Rensa för att dölja antal',
     add: 'Lägg till',
     added: 'Artikel tillagd',
     addFailed: 'Kunde inte lägga till artikeln',

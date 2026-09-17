@@ -59,7 +59,15 @@
               <q-input v-model.number="form.priority" :label="t('item.priority')" type="number" dense outlined />
             </div>
             <div class="col-3">
-              <q-input v-model.number="form.quantity" :label="t('item.quantity')" type="number" dense outlined />
+              <q-input
+                v-model.number="form.quantity"
+                :label="t('item.quantity')"
+                type="number"
+                dense
+                outlined
+                clearable
+                :hint="t('item.quantityHint')"
+              />
             </div>
           </div>
         </template>
@@ -69,6 +77,9 @@
           <div v-if="item.description" class="text-body2 q-mb-sm">{{ item.description }}</div>
           <div v-if="item.price != null" class="text-subtitle1 q-mb-sm">
             {{ item.price }} {{ item.currency || '' }}
+          </div>
+          <div v-if="item.quantity != null" class="text-caption q-mb-sm">
+            {{ t('item.quantityLabel') }}: {{ item.quantity }}
           </div>
           <div v-if="item.categoryName" class="text-caption q-mb-sm">{{ item.categoryName }}</div>
           <q-chip v-if="item.status" :color="statusColor(item.status)" text-color="white" class="q-mb-md">
@@ -205,7 +216,7 @@ async function submit() {
       currency: form.currency || null,
       category_id: form.category_id || null,
       priority: form.priority,
-      quantity: form.quantity,
+      quantity: form.quantity === '' ? null : form.quantity,
     });
     emit('saved', data);
     $q.notify({ type: 'positive', message: t('item.saved') });

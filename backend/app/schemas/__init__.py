@@ -116,7 +116,7 @@ class WishItemBase(BaseModel):
     price: Optional[float] = None
     currency: Optional[str] = None
     priority: int = 0
-    quantity: int = 1
+    quantity: Optional[int] = None
     category_id: Optional[str] = None
     archived: bool = False
 

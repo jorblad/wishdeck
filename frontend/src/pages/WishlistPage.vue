@@ -72,6 +72,7 @@
               <q-item-label>{{ item.title }}</q-item-label>
               <q-item-label caption>
                 {{ item.price != null ? item.price + ' ' + (item.currency || '') : '' }}
+                <span v-if="item.quantity != null" class="q-ml-xs">×{{ item.quantity }}</span>
               </q-item-label>
             </q-item-section>
             <q-item-section side>
