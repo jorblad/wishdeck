@@ -109,6 +109,8 @@ async def oidc_config(session: AsyncSession = Depends(get_session)) -> dict:
         "enabled": bool(enabled),
         "name": await effective_value("OIDC_NAME", session),
         "issuer_url": await effective_value("OIDC_ISSUER_URL", session),
+        "client_id": await effective_value("OIDC_CLIENT_ID", session),
+        "scopes": await effective_value("OIDC_SCOPES", session) or "openid email profile",
     }
 
 

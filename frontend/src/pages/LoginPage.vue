@@ -57,10 +57,12 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
 
 const { t } = useI18n();
+const $q = useQuasar();
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -70,14 +72,14 @@ const password = ref('');
 const fullName = ref('');
 const username = ref('');
 const loading = ref(false);
-const oidc = ref({ enabled: false, name: '', issuer_url: '' });
+const oidc = ref({ enabled: false, name: '', issuer_url: '', client_id: '', scopes: '' });
 
 onMounted(async () => {
   try {
     const { data } = await api.get('/auth/oidc/config');
     oidc.value = data;
   } catch {
-    oidc.value = { enabled: false, name: '', issuer_url: '' };
+    oidc.value = { enabled: false, name: '', issuer_url: '', client_id: '', scopes: '' };
   }
 });
 
@@ -115,11 +117,34 @@ async function localRegister() {
   }
 }
 
-function startOidc() {
-  const issuer = oidc.value.issuer_url;
-  const redirect = `${window.location.origin}/#/oidc/callback`;
-  window.location.href =
-    `${issuer}/protocol/openid-connect/auth?response_type=code&client_id=wishdeck` +
-    `&redirect_uri=${encodeURIComponent(redirect)}&scope=openid%20email%20profile`;
+async function startOidc() {
+  try {
+    const issuer = (oidc.value.issuer_url || '').replace(/\/$/, '');
+    const clientId = oidc.value.client_id;
+    const scopes = oidc.value.scopes || 'openid email profile';
+    const redirect = `${window.location.origin}/#/oidc/callback`;
+
+    // Use the issuer's OpenID Connect discovery document so this works for any
+    // provider (Entra ID, Keycloak, Google, etc.) without hardcoded paths.
+    const discovery = await fetch(`${issuer}/.well-known/openid-configuration`).then((r) => r.json());
+    const authEndpoint = discovery.authorization_endpoint;
+    if (!authEndpoint) {
+      throw new Error('OIDC authorization_endpoint not found in discovery document');
+    }
+
+    const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem('oidc_state', state);
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirect,
+      scope: scopes,
+      state,
+    });
+    window.location.href = `${authEndpoint}?${params.toString()}`;
+  } catch (e) {
+    $q.notify({ type: 'negative', message: e.message || 'Failed to start OIDC login' });
+  }
 }
 </script>

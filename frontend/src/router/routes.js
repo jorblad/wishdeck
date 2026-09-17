@@ -34,6 +34,11 @@ const routes = [
     name: 'login',
     component: () => import('pages/LoginPage.vue'),
   },
+  {
+    path: '/oidc/callback',
+    name: 'oidc-callback',
+    component: () => import('pages/OidcCallback.vue'),
+  },
   { path: '/:catchAll(.*)*', component: () => import('pages/ErrorNotFound.vue') },
 ];
 

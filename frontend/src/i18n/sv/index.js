@@ -41,6 +41,8 @@ export default {
     createAnAccount: 'Skapa ett konto',
     haveAccount: 'Har du ett konto? Logga in',
     sso: 'SSO',
+    backToLogin: 'Tillbaka till inloggning',
+    signingIn: 'Loggar in…',
   },
   index: {
     myWishlists: 'Mina önskelistor',
@@ -48,6 +50,7 @@ export default {
   error: {
     notFound: '404 — Sidan hittades inte',
     goHome: 'Till startsidan',
+    generic: 'Något gick fel',
   },
   visibility: {
     private: 'Privat',

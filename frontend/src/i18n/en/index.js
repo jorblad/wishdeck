@@ -41,6 +41,8 @@ export default {
     createAnAccount: 'Create an account',
     haveAccount: 'Have an account? Sign in',
     sso: 'SSO',
+    backToLogin: 'Back to login',
+    signingIn: 'Signing in…',
   },
   index: {
     myWishlists: 'My Wishlists',
@@ -48,6 +50,7 @@ export default {
   error: {
     notFound: '404 — Page not found',
     goHome: 'Go home',
+    generic: 'Something went wrong',
   },
   visibility: {
     private: 'Private',
