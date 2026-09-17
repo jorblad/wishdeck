@@ -85,6 +85,7 @@ class WishItem(Base, TimestampMixin):
     status: Mapped[ClaimStatus] = mapped_column(
         Enum(ClaimStatus), default=ClaimStatus.OPEN, nullable=False
     )
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     claimed_by: Mapped[str | None] = mapped_column(String(255))
     claimed_by_name: Mapped[str | None] = mapped_column(String(255))
     claimed_at: Mapped[datetime | None] = mapped_column()

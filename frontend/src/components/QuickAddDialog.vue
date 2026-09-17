@@ -101,6 +101,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
 
 const props = defineProps({
@@ -111,6 +112,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'added', 'category-created']);
 
 const { t } = useI18n();
+const $q = useQuasar();
 
 const url = ref('');
 const title = ref('');
@@ -162,8 +164,10 @@ async function createCategory(name, done) {
     emit('category-created', data);
     categoryId.value = data.id;
   } catch (e) {
-    // If creation failed, ignore — the user can retry or pick an existing one.
-    console.error(e);
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('item.categoryCreateFailed'),
+    });
   }
 }
 
@@ -178,8 +182,10 @@ async function scrape() {
     price.value = data.price ?? price.value;
     currency.value = data.currency || currency.value;
   } catch (e) {
-    // ignore — user can still fill manually
-    console.error(e);
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('quickAdd.scrapeFailed'),
+    });
   } finally {
     scraping.value = false;
   }
@@ -200,9 +206,13 @@ async function submit() {
       quantity: quantity.value,
     });
     emit('added', data);
+    $q.notify({ type: 'positive', message: t('quickAdd.added') });
     close();
   } catch (e) {
-    console.error(e);
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('quickAdd.addFailed'),
+    });
   } finally {
     saving.value = false;
   }

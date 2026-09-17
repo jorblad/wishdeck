@@ -118,6 +118,7 @@ class WishItemBase(BaseModel):
     priority: int = 0
     quantity: int = 1
     category_id: Optional[str] = None
+    archived: bool = False
 
 
 class WishItemCreate(WishItemBase):

@@ -63,12 +63,34 @@
                 {{ item.price != null ? item.price + ' ' + (item.currency || '') : '' }}
               </q-item-label>
             </q-item-section>
-            <q-item-section side v-if="wishlist.allow_claims">
+            <q-item-section side>
+              <template v-if="isOwner">
+                <q-btn
+                  size="sm"
+                  flat
+                  round
+                  icon="archive"
+                  @click.stop="archiveItem(item)"
+                >
+                  <q-tooltip>{{ t('item.archive') }}</q-tooltip>
+                </q-btn>
+                <q-btn
+                  size="sm"
+                  flat
+                  round
+                  icon="delete"
+                  color="negative"
+                  @click.stop="deleteItem(item)"
+                >
+                  <q-tooltip>{{ t('item.delete') }}</q-tooltip>
+                </q-btn>
+              </template>
               <q-btn
+                v-else-if="wishlist.allow_claims"
                 size="sm"
                 :color="item.status === 'open' ? 'primary' : 'grey'"
                 :label="item.status === 'open' ? t('wishlist.claim') : t('wishlist.status.' + item.status)"
-                :disable="item.status !== 'open' || isOwner"
+                :disable="item.status !== 'open'"
                 @click.stop="claim(item)"
               />
             </q-item-section>
@@ -98,6 +120,9 @@
       :is-owner="isOwner"
       :categories="wishlist ? wishlist.categories : []"
       @saved="onItemSaved"
+      @deleted="onItemDeleted"
+      @archived="onItemArchived"
+      @category-created="onCategoryCreated"
     />
 
     <q-dialog v-model="shareOpen">
@@ -206,12 +231,25 @@ function openItem(item) {
 function onItemSaved() {
   load();
 }
+function onItemDeleted(item) {
+  if (wishlist.value?.items) {
+    wishlist.value.items = wishlist.value.items.filter((i) => i.id !== item.id);
+  }
+  $q.notify({ type: 'positive', message: t('item.deleted') });
+}
+function onItemArchived(item) {
+  const local = wishlist.value?.items?.find((i) => i.id === item.id);
+  if (local) local.archived = true;
+  $q.notify({ type: 'positive', message: t('item.archived') });
+}
 
 const grouped = computed(() => {
   if (!wishlist.value) return [];
   const map = {};
   for (const item of wishlist.value.items || []) {
-    const name = item.category_id || t('wishlist.uncategorized');
+    if (item.archived) continue;
+    const cat = wishlist.value.categories.find((c) => c.id === item.category_id);
+    const name = cat ? cat.name : t('wishlist.uncategorized');
     (map[name] ||= { name, items: [] }).items.push(item);
   }
   return Object.values(map);
@@ -220,6 +258,35 @@ const grouped = computed(() => {
 async function claim(item) {
   await api.post(`/wishlists/items/${item.id}/claim`);
   await load();
+}
+async function deleteItem(item) {
+  $q.dialog({
+    title: t('item.deleteConfirmTitle'),
+    message: t('item.deleteConfirmMessage', { title: item.title }),
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.delete(`/wishlists/items/${item.id}`);
+      onItemDeleted(item);
+    } catch (e) {
+      $q.notify({
+        type: 'negative',
+        message: e?.response?.data?.detail || t('item.deleteFailed'),
+      });
+    }
+  });
+}
+async function archiveItem(item) {
+  try {
+    await api.put(`/wishlists/items/${item.id}`, { archived: true });
+    onItemArchived(item);
+  } catch (e) {
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('item.archiveFailed'),
+    });
+  }
 }
 
 async function load(attempt = 1) {
@@ -232,6 +299,10 @@ async function load(attempt = 1) {
     wishlist.value = data;
   } catch (e) {
     console.error('Wishlist load failed:', e);
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('wishlist.loadFailed'),
+    });
     // Retry once after a short delay to handle transient races (e.g. service
     // worker or DB replication lag right after creation).
     if (attempt === 1) {

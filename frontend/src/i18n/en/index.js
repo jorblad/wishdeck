@@ -22,6 +22,9 @@ export default {
     priority: 'Priority',
     quantity: 'Quantity',
     add: 'Add item',
+    added: 'Item added',
+    addFailed: 'Could not add item',
+    scrapeFailed: 'Could not scrape link',
   },
   menu: {
     settings: 'Settings',
@@ -76,6 +79,7 @@ export default {
     claim: 'Claim',
     allowClaims: 'Allow others to claim items',
     uncategorized: 'Uncategorized',
+    loadFailed: 'Could not load wishlist',
     status: {
       open: 'Open',
       claimed: 'Claimed',
@@ -97,6 +101,15 @@ export default {
     openLink: 'Open where it can be bought',
     noLink: 'No purchase link provided',
     saved: 'Item saved',
+    delete: 'Delete',
+    archive: 'Archive',
+    archived: 'Item archived',
+    deleted: 'Item deleted',
+    deleteFailed: 'Could not delete item',
+    archiveFailed: 'Could not archive item',
+    deleteConfirmTitle: 'Delete item',
+    deleteConfirmMessage: 'Delete "{title}"? This cannot be undone.',
+    categoryCreateFailed: 'Could not create category',
   },
   users: {
     title: 'User management',

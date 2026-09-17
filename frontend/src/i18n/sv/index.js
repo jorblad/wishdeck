@@ -22,6 +22,9 @@ export default {
     priority: 'Prioritet',
     quantity: 'Antal',
     add: 'Lägg till',
+    added: 'Artikel tillagd',
+    addFailed: 'Kunde inte lägga till artikeln',
+    scrapeFailed: 'Kunde inte hämta länken',
   },
   menu: {
     settings: 'Inställningar',
@@ -76,6 +79,7 @@ export default {
     claim: 'Reservera',
     allowClaims: 'Tillåt andra att reservera saker',
     uncategorized: 'Okategoriserad',
+    loadFailed: 'Kunde inte ladda önskelistan',
     status: {
       open: 'Öppen',
       claimed: 'Reserverad',
@@ -97,6 +101,15 @@ export default {
     openLink: 'Öppna där den kan köpas',
     noLink: 'Ingen köplänk angiven',
     saved: 'Sak sparad',
+    delete: 'Ta bort',
+    archive: 'Arkivera',
+    archived: 'Sak arkiverad',
+    deleted: 'Sak borttagen',
+    deleteFailed: 'Kunde inte ta bort saken',
+    archiveFailed: 'Kunde inte arkivera saken',
+    deleteConfirmTitle: 'Ta bort sak',
+    deleteConfirmMessage: 'Ta bort "{title}"? Detta kan inte ångras.',
+    categoryCreateFailed: 'Kunde inte skapa kategori',
   },
   users: {
     title: 'Användarhantering',

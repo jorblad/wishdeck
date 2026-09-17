@@ -50,6 +50,8 @@ async def list_my_wishlists(
         .where(Wishlist.owner_id == user.id, Wishlist.archived == archived)
         .order_by(Wishlist.created_at.desc())
     )).scalars().all()
+    for wl in rows:
+        _exclude_archived_items(wl)
     return rows
 
 
@@ -81,6 +83,7 @@ async def get_wishlist(
 ) -> Wishlist:
     wl = await _get_owned(session, wishlist_id, user)
     await session.refresh(wl, attribute_names=["categories", "items"])
+    _exclude_archived_items(wl)
     return wl
 
 
@@ -171,6 +174,18 @@ async def update_item(
     return item
 
 
+@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_item(
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> Response:
+    item = await _get_item_for_owner(session, item_id, user)
+    await session.delete(item)
+    await session.flush()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.post("/items/{item_id}/claim", response_model=WishItemOut)
 async def claim_item(
     item_id: str,
@@ -232,7 +247,13 @@ async def public_wishlist(
         raise HTTPException(status_code=404, detail="Not found")
     if wl.visibility.value == Visibility.PRIVATE.value:
         raise HTTPException(status_code=403, detail="Private list")
+    _exclude_archived_items(wl)
     return wl
+
+
+def _exclude_archived_items(wl: Wishlist) -> None:
+    """Filter archived items out of an eager-loaded wishlist.items collection."""
+    wl.items = [item for item in wl.items if not item.archived]
 
 
 def _utcnow():

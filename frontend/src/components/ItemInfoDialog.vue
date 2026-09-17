@@ -48,6 +48,11 @@
                 emit-value
                 map-options
                 clearable
+                use-input
+                hide-selected
+                fill-input
+                input-debounce="0"
+                @new-value="createCategory"
               />
             </div>
             <div class="col-3">
@@ -80,14 +85,27 @@
 
       <q-card-actions align="right">
         <q-btn flat :label="t('common.cancel')" @click="close" />
-        <q-btn
-          v-if="isOwner"
-          color="primary"
-          :label="t('common.save')"
-          :loading="saving"
-          :disable="!form.title"
-          @click="submit"
-        />
+        <template v-if="isOwner">
+          <q-btn
+            flat
+            color="negative"
+            :label="t('item.delete')"
+            @click="remove"
+          />
+          <q-btn
+            flat
+            color="warning"
+            :label="t('item.archive')"
+            @click="archive"
+          />
+          <q-btn
+            color="primary"
+            :label="t('common.save')"
+            :loading="saving"
+            :disable="!form.title"
+            @click="submit"
+          />
+        </template>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -105,7 +123,7 @@ const props = defineProps({
   isOwner: { type: Boolean, default: false },
   categories: { type: Array, default: () => [] },
 });
-const emit = defineEmits(['update:modelValue', 'saved']);
+const emit = defineEmits(['update:modelValue', 'saved', 'deleted', 'archived', 'category-created']);
 
 const { t } = useI18n();
 const $q = useQuasar();
@@ -156,6 +174,24 @@ function close() {
   emit('update:modelValue', false);
 }
 
+async function createCategory(name, done) {
+  const trimmed = (name || '').trim();
+  done();
+  if (!trimmed || !props.item?.wishlist_id) return;
+  try {
+    const { data } = await api.post(`/wishlists/${props.item.wishlist_id}/categories`, {
+      name: trimmed,
+    });
+    emit('category-created', data);
+    form.category_id = data.id;
+  } catch (e) {
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('item.categoryCreateFailed'),
+    });
+  }
+}
+
 async function submit() {
   if (!form.title) return;
   saving.value = true;
@@ -175,9 +211,38 @@ async function submit() {
     $q.notify({ type: 'positive', message: t('item.saved') });
     close();
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
   } finally {
     saving.value = false;
+  }
+}
+
+function remove() {
+  $q.dialog({
+    title: t('item.deleteConfirmTitle'),
+    message: t('item.deleteConfirmMessage', { title: form.title }),
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.delete(`/wishlists/items/${form.id}`);
+      emit('deleted', { id: form.id });
+      $q.notify({ type: 'positive', message: t('item.deleted') });
+      close();
+    } catch (e) {
+      $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('item.deleteFailed') });
+    }
+  });
+}
+
+async function archive() {
+  try {
+    await api.put(`/wishlists/items/${form.id}`, { archived: true });
+    emit('archived', { id: form.id });
+    $q.notify({ type: 'positive', message: t('item.archived') });
+    close();
+  } catch (e) {
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('item.archiveFailed') });
   }
 }
 </script>
