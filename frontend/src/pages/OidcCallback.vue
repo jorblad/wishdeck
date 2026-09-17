@@ -24,17 +24,14 @@
 
 <script setup>
 import { onMounted, ref, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
-import { useAuthStore } from 'stores/auth';
 
 const { t } = useI18n();
 const $q = useQuasar();
-const router = useRouter();
 const route = useRoute();
-const auth = useAuthStore();
 
 const status = ref('pending'); // 'pending' | 'error'
 const message = ref('');
@@ -76,8 +73,10 @@ onMounted(async () => {
   const redirectUri = `${window.location.origin}/oidc/callback`;
   try {
     await api.post('/auth/oidc/callback', { code, redirect_uri: redirectUri });
-    await auth.fetchMe();
-    router.replace('/');
+    // Force a full-page navigation so the freshly set auth cookie is used by
+    // the next app boot. This avoids router/service-worker timing issues that
+    // can cause a client-side replace('/') to land back on the login page.
+    window.location.href = '/';
   } catch (e) {
     status.value = 'error';
     message.value = e?.response?.data?.detail || 'OIDC login failed';
