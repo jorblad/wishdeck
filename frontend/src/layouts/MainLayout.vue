@@ -17,7 +17,7 @@
           <q-tooltip>{{ $t('theme.toggle') }}</q-tooltip>
         </q-btn>
         <q-btn v-if="auth.isAuthenticated && auth.isAdmin" flat :label="$t('menu.users')" to="/users" />
-        <q-btn v-if="auth.isAuthenticated" flat :label="$t('menu.settings')" to="/settings" />
+        <q-btn v-if="auth.isAuthenticated&& auth.isAdmin" flat :label="$t('menu.settings')" to="/settings" />
         <q-btn v-if="auth.isAuthenticated" flat :label="$t('menu.logout')" @click="onLogout" />
         <q-btn v-else flat :label="$t('menu.login')" to="/login" />
       </q-toolbar>

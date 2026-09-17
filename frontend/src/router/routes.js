@@ -8,7 +8,7 @@ const routes = [
         path: 'settings',
         name: 'settings',
         component: () => import('pages/SettingsPage.vue'),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresAdmin: true },
       },
       {
         path: 'users',
