@@ -85,6 +85,14 @@ class Settings(BaseSettings):
     def _require_async_driver(cls, v: str) -> str:
         if v.startswith("sqlite") and "+aiosqlite" not in v:
             v = v.replace("sqlite", "sqlite+aiosqlite", 1)
+        # CloudNativePG (and most operators) hand out a bare `postgresql://` URI.
+        # SQLAlchemy's asyncio engine requires a genuinely async DBAPI, so rewrite
+        # the scheme to the psycopg3 dialect. psycopg2 (sync) is rejected.
+        scheme = v.split(":", 1)[0]
+        if scheme in ("postgresql", "postgres"):
+            v = v.replace(scheme, "postgresql+psycopg", 1)
+        elif scheme == "postgresql+psycopg2":
+            v = v.replace("postgresql+psycopg2", "postgresql+psycopg", 1)
         return v
 
 

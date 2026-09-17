@@ -3,10 +3,11 @@ uvicorn[standard]==0.53.0
 sqlalchemy[asyncio]==2.0.54
 alembic==1.20.0
 aiosqlite==0.22.1
-# Native async PostgreSQL driver. SQLAlchemy's asyncio engine (create_async_engine)
-# requires a genuinely async DBAPI, so psycopg2 (sync) is NOT usable here.
-# The DATABASE_URL must therefore use the `postgresql+asyncpg://` dialect.
-asyncpg==0.31.0
+# Async-native PostgreSQL driver (psycopg 3). SQLAlchemy's asyncio engine
+# requires an async DBAPI; psycopg3 is used via the `postgresql+psycopg://`
+# dialect. A bare CNPG `postgresql://` URI is rewritten to that dialect in
+# app/core/config.py, so the operator-provided secret can be used as-is.
+psycopg[binary]==3.3.5
 pydantic==2.13.5
 pydantic-settings==2.15.0
 python-multipart==0.0.32
@@ -16,4 +17,3 @@ python-jose[cryptography]==3.5.0
 passlib[argon2]==1.7.4
 argon2-cffi==25.1.0
 authlib==1.8.0
-psycopg2-binary==2.9.13
