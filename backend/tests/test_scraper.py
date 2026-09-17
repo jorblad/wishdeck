@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.api.v1.utils import parse_metadata, _parse_jina_response
+from app.api.v1.utils import parse_metadata, _parse_jina_response, extract_links
 
 
 HTML = """
@@ -66,3 +66,20 @@ def test_parse_jina_response_fallback_to_heading_and_paragraph():
     data = _parse_jina_response(markdown, "https://x.com")
     assert data["title"] == "Fallback Title"
     assert data["description"] == "Fallback description paragraph."
+
+
+async def test_extract_links_parses_html_anchors():
+    html = """
+    <div>
+      <a href="https://example.com/one">First link</a>
+      <a href="https://example.com/two">Second link</a>
+      <a href="mailto:nope@example.com">Email</a>
+      <a href="https://example.com/one">Duplicate</a>
+    </div>
+    """
+    links = await extract_links({"html": html})
+    assert len(links) == 2
+    assert links[0].title == "First link"
+    assert links[0].url == "https://example.com/one"
+    assert links[1].title == "Second link"
+    assert links[1].url == "https://example.com/two"

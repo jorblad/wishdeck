@@ -31,7 +31,14 @@
           <q-input v-model="form.image_url" :label="t('item.image')" dense outlined class="q-mb-sm" />
           <div class="row q-col-gutter-sm q-mb-sm">
             <div class="col-6">
-              <q-input v-model.number="form.price" :label="t('item.price')" type="number" dense outlined />
+              <q-input
+                v-model.number="form.price"
+                :label="t('item.price')"
+                type="number"
+                dense
+                outlined
+                clearable
+              />
             </div>
             <div class="col-6">
               <q-input v-model="form.currency" :label="t('item.currency')" dense outlined />
@@ -82,13 +89,19 @@
             {{ t('item.quantityLabel') }}: {{ item.quantity }}
           </div>
           <div v-if="item.categoryName" class="text-caption q-mb-sm">{{ item.categoryName }}</div>
-          <q-chip v-if="item.status" :color="statusColor(item.status)" text-color="white" class="q-mb-md">
+          <q-chip v-if="allowClaims && item.status" :color="statusColor(item.status)" text-color="white" class="q-mb-md">
             {{ t('wishlist.status.' + item.status) }}
           </q-chip>
           <div v-if="item.url" class="q-mt-sm">
-            <a :href="item.url" target="_blank" rel="noopener noreferrer" class="text-primary">
-              {{ t('item.openLink') }}
-            </a>
+            <q-btn
+              :href="item.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              color="primary"
+              size="sm"
+              icon="open_in_new"
+              :label="t('item.openLink')"
+            />
           </div>
           <div v-else class="text-grey q-mt-sm">{{ t('item.noLink') }}</div>
         </template>
@@ -132,6 +145,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   item: { type: Object, default: null },
   isOwner: { type: Boolean, default: false },
+  allowClaims: { type: Boolean, default: true },
   categories: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['update:modelValue', 'saved', 'deleted', 'archived', 'category-created']);
@@ -170,7 +184,7 @@ watch(
       form.currency = props.item.currency || '';
       form.category_id = props.item.category_id || null;
       form.priority = props.item.priority ?? 0;
-      form.quantity = props.item.quantity ?? 1;
+      form.quantity = props.item.quantity ?? null;
     }
   }
 );
@@ -212,7 +226,7 @@ async function submit() {
       description: form.description || null,
       url: form.url || null,
       image_url: form.image_url || null,
-      price: form.price ?? null,
+      price: form.price === '' ? null : form.price,
       currency: form.currency || null,
       category_id: form.category_id || null,
       priority: form.priority,

@@ -30,6 +30,16 @@
           flat
           round
           dense
+          icon="playlist_add"
+          @click="bulkImportOpen = true"
+        >
+          <q-tooltip>{{ t('bulkImport.title') }}</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="isOwner"
+          flat
+          round
+          dense
           icon="edit"
           @click="openEdit"
         >
@@ -109,7 +119,7 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>{{ item.title }}</q-item-label>
-              <q-item-label caption>
+              <q-item-label v-if="item.price != null || item.quantity != null" caption>
                 {{ item.price != null ? item.price + ' ' + (item.currency || '') : '' }}
                 <span v-if="item.quantity != null" class="q-ml-xs">×{{ item.quantity }}</span>
               </q-item-label>
@@ -177,10 +187,18 @@
       @category-created="onCategoryCreated"
     />
 
+    <BulkImportDialog
+      v-model="bulkImportOpen"
+      :wishlist-id="wishlist ? wishlist.id : ''"
+      :categories="wishlist ? wishlist.categories : []"
+      @imported="onItemsImported"
+    />
+
     <ItemInfoDialog
       v-model="itemDialog.open"
       :item="itemDialog.item"
       :is-owner="isOwner"
+      :allow-claims="wishlist ? wishlist.allow_claims : true"
       :categories="wishlist ? wishlist.categories : []"
       @saved="onItemSaved"
       @deleted="onItemDeleted"
@@ -232,6 +250,7 @@ import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
 import WishlistEditDialog from 'components/WishlistEditDialog.vue';
 import QuickAddDialog from 'components/QuickAddDialog.vue';
+import BulkImportDialog from 'components/BulkImportDialog.vue';
 import ItemInfoDialog from 'components/ItemInfoDialog.vue';
 
 const route = useRoute();
@@ -242,6 +261,7 @@ const wishlist = ref(null);
 const loading = ref(true);
 const editDialog = ref({ open: false, wishlist: null });
 const quickAddOpen = ref(false);
+const bulkImportOpen = ref(false);
 const itemDialog = ref({ open: false, item: null });
 const shareOpen = ref(false);
 const showArchived = ref(false);
@@ -307,6 +327,9 @@ function onSaved() {
   load();
 }
 function onItemAdded() {
+  load();
+}
+function onItemsImported() {
   load();
 }
 function onCategoryCreated(cat) {

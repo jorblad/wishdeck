@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import effective_value
 from app.db.session import get_session
-from app.schemas import ScrapeLinkResponse
+from app.schemas import ExtractedLink, ScrapeLinkResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("wishdeck.utils")
@@ -41,6 +41,32 @@ _BROWSER_UAS = [
 
 # Status codes that usually mean the site is actively blocking our request.
 _BLOCK_CODES = frozenset({403, 429, 406, 502, 503, 504})
+
+# Helpers for parsing free-text / pasted wish lists.
+_BULK_URL_RE = re.compile(r"https?://[^\s<>\)\"]+")
+_BULK_TRAILING_SEP_RE = re.compile(r"[\-–—|]+\s*$")
+_BULK_EMPTY_PARENS_RE = re.compile(r"\s*[\(\[\{]\s*[\)\]\}]\s*$")
+
+
+def parse_bulk_items(text: str) -> list[dict[str, str | None]]:
+    """Parse a free-text wish list into (title, url) entries."""
+    items: list[dict[str, str | None]] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        match = _BULK_URL_RE.search(line)
+        url = match.group(0).rstrip(".,;:!?>)") if match else None
+        if match:
+            title = (line[: match.start()] + line[match.end() :]).strip()
+        else:
+            title = line
+        title = _BULK_TRAILING_SEP_RE.sub("", title)
+        title = _BULK_EMPTY_PARENS_RE.sub("", title)
+        title = re.sub(r"\s+", " ", title).strip()
+        if title:
+            items.append({"title": title, "url": url})
+    return items
 
 
 def _browser_headers(user_agent: str) -> dict[str, str]:
@@ -338,30 +364,9 @@ async def _fetch_html(url: str) -> tuple[str, str]:
     ) from last_error
 
 
-@router.post("/scrape-link", response_model=ScrapeLinkResponse, status_code=status.HTTP_200_OK)
-async def scrape_link(
-    payload: dict,
-    session: AsyncSession = Depends(get_session),
-) -> ScrapeLinkResponse:
-    """Extract product metadata from a URL for quick-add auto-fill."""
-    url = (payload or {}).get("url")
-    if not url or not urlparse(url).scheme.startswith("http"):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="A valid http(s) URL is required.",
-        )
-    try:
-        content, source = await _fetch_html(url)
-    except ScrapeFetchError as exc:
-        logger.warning("Scrape failed for %s: %s", url, exc)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=(
-                f"Unable to fetch URL{f' ({exc.status_code})' if exc.status_code else ''}: {exc}. "
-                "Some sites block automated scraping."
-            ),
-        ) from exc
-
+async def _scrape_link_data(url: str, session: AsyncSession | None = None) -> dict[str, Any]:
+    """Fetch and parse metadata for a single URL."""
+    content, source = await _fetch_html(url)
     if source == "jina":
         data = _parse_jina_response(content, url)
     else:
@@ -378,10 +383,79 @@ async def scrape_link(
                 pass
 
     # Fall back to the configured default currency when none was detected.
-    if data["price"] is not None and not data["currency"]:
+    if data["price"] is not None and not data["currency"] and session is not None:
         data["currency"] = await effective_value("DEFAULT_CURRENCY", session) or "USD"
+    return data
+
+
+@router.post("/scrape-link", response_model=ScrapeLinkResponse, status_code=status.HTTP_200_OK)
+async def scrape_link(
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+) -> ScrapeLinkResponse:
+    """Extract product metadata from a URL for quick-add auto-fill."""
+    url = (payload or {}).get("url")
+    if not url or not urlparse(url).scheme.startswith("http"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A valid http(s) URL is required.",
+        )
+    try:
+        data = await _scrape_link_data(url, session)
+    except ScrapeFetchError as exc:
+        logger.warning("Scrape failed for %s: %s", url, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                f"Unable to fetch URL{f' ({exc.status_code})' if exc.status_code else ''}: {exc}. "
+                "Some sites block automated scraping."
+            ),
+        ) from exc
+
     return ScrapeLinkResponse(url=url, **data)
 
 
-__all__ = ["router", "parse_metadata"]
+@router.post("/extract-links", response_model=list[ExtractedLink])
+async def extract_links(payload: dict) -> list[ExtractedLink]:
+    """Extract titled links from pasted HTML or plain text.
+
+    Useful when copying from OneNote only yields the link text; exporting the
+    page or copying the underlying HTML preserves the actual hrefs. Plain text
+    lines like ``Title - https://...`` are also accepted.
+    """
+    html = (payload or {}).get("html", "")
+    plain = (payload or {}).get("text", "")
+    source = html or plain
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="HTML or text content is required.",
+        )
+
+    results: list[ExtractedLink] = []
+    seen: set[str] = set()
+
+    if html:
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup.find_all("a", href=True):
+            url = tag["href"].strip()
+            if not url.startswith(("http://", "https://")):
+                continue
+            if url in seen:
+                continue
+            seen.add(url)
+            title = tag.get_text(strip=True) or None
+            results.append(ExtractedLink(title=title, url=url))
+    else:
+        for entry in parse_bulk_items(plain):
+            url = entry.get("url")
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            results.append(ExtractedLink(title=entry.get("title") or None, url=url))
+
+    return results
+
+
+__all__ = ["router", "parse_metadata", "parse_bulk_items"]
 

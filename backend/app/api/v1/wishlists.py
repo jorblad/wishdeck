@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, get_optional_user
+from app.api.v1.utils import parse_bulk_items, _scrape_link_data
 from app.core.config import effective_value
 from app.models.core import _uuid
 from app.db.session import get_session
@@ -22,6 +23,8 @@ from app.models.wishlist import (
     Wishlist,
 )
 from app.schemas import (
+    BulkItemImportRequest,
+    BulkItemImportResponse,
     CategoryBase,
     CategoryOut,
     WishItemCreate,
@@ -162,6 +165,48 @@ async def add_item(
     session.add(item)
     await session.flush()
     return item
+
+
+@router.post("/{wishlist_id}/items/bulk", response_model=BulkItemImportResponse, status_code=201)
+async def bulk_import_items(
+    wishlist_id: str,
+    payload: BulkItemImportRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BulkItemImportResponse:
+    """Create many wishes from a pasted plain-text list."""
+    await _get_owned(session, wishlist_id, user)
+    entries = parse_bulk_items(payload.text)
+    created: list[WishItem] = []
+    for entry in entries:
+        title = entry["title"]
+        url = entry["url"]
+        description = image_url = price = currency = None
+        if payload.scrape and url:
+            try:
+                scraped = await _scrape_link_data(url, session)
+                title = scraped.get("title") or title
+                description = scraped.get("description")
+                image_url = scraped.get("image_url")
+                price = scraped.get("price")
+                currency = scraped.get("currency")
+            except Exception:
+                # If scraping fails, still import the raw line.
+                pass
+        item = WishItem(
+            wishlist_id=wishlist_id,
+            title=title,
+            description=description,
+            url=url,
+            image_url=image_url,
+            price=price,
+            currency=currency,
+            category_id=payload.category_id,
+        )
+        session.add(item)
+        created.append(item)
+    await session.flush()
+    return BulkItemImportResponse(created=len(created), items=created)
 
 
 @router.put("/items/{item_id}", response_model=WishItemOut)

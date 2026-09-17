@@ -54,7 +54,14 @@
         </div>
         <div class="row q-col-gutter-sm q-mt-xs">
           <div class="col-6">
-            <q-input v-model.number="price" :label="t('quickAdd.price')" type="number" dense outlined />
+            <q-input
+              v-model.number="price"
+              :label="t('quickAdd.price')"
+              type="number"
+              dense
+              outlined
+              clearable
+            />
           </div>
           <div class="col-6">
             <q-select
@@ -208,7 +215,7 @@ async function submit() {
       url: url.value || null,
       image_url: imageUrl.value || null,
       currency: currency.value || null,
-      price: price.value ?? null,
+      price: price.value === '' ? null : price.value,
       category_id: categoryId.value || null,
       priority: priority.value,
       quantity: quantity.value === '' ? null : quantity.value,

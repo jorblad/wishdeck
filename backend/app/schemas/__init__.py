@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # --------------------------------------------------------------------------
@@ -16,6 +16,11 @@ class ScrapeLinkResponse(BaseModel):
     currency: Optional[str] = None
     image_url: Optional[str] = None
     favicon: Optional[str] = None
+
+
+class ExtractedLink(BaseModel):
+    title: Optional[str] = None
+    url: str
 
 
 # --------------------------------------------------------------------------
@@ -126,11 +131,24 @@ class WishItemCreate(WishItemBase):
 
 
 class WishItemOut(WishItemBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     wishlist_id: str
     status: str
     claimed_by: Optional[str] = None
     claimed_by_name: Optional[str] = None
+
+
+class BulkItemImportRequest(BaseModel):
+    text: str
+    category_id: Optional[str] = None
+    scrape: bool = False
+
+
+class BulkItemImportResponse(BaseModel):
+    created: int
+    items: list[WishItemOut]
 
 
 class WishlistBase(BaseModel):
@@ -164,6 +182,7 @@ class WishlistOut(WishlistBase):
 
 __all__ = [
     "ScrapeLinkResponse",
+    "ExtractedLink",
     "SettingOut",
     "SettingsUpdate",
     "SettingsResponse",
@@ -177,6 +196,8 @@ __all__ = [
     "WishItemBase",
     "WishItemCreate",
     "WishItemOut",
+    "BulkItemImportRequest",
+    "BulkItemImportResponse",
     "WishlistBase",
     "WishlistCreate",
     "WishlistUpdate",
