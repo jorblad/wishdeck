@@ -129,6 +129,8 @@ async def oidc_callback(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="OIDC disabled")
 
     from authlib.integrations.httpx_client import AsyncOAuth2Client  # lazy import
+    from authlib.integrations.base_client.errors import OAuthError
+    import httpx
 
     issuer = await effective_value("OIDC_ISSUER_URL", session)
     client_id = await effective_value("OIDC_CLIENT_ID", session)
@@ -137,18 +139,53 @@ async def oidc_callback(
     redirect_uri = payload.redirect_uri or await effective_value("OIDC_REDIRECT_URI", session) \
         or f"{settings.BASE_URL}/api/v1/auth/oidc/callback"
 
-    async with AsyncOAuth2Client(
-        client_id, client_secret=client_secret, scope=scopes, redirect_uri=redirect_uri
-    ) as client:
-        # Discover token & userinfo endpoints from the issuer's well-known config.
-        metadata = await client.load_server_metadata(
-            f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+    # Discover endpoints manually: AsyncOAuth2Client is not an OIDC client and
+    # does not expose load_server_metadata()/userinfo() in all authlib versions.
+    discovery_url = f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+    try:
+        async with httpx.AsyncClient() as http_client:
+            metadata = (await http_client.get(discovery_url)).json()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"OIDC discovery failed: {exc}",
+        ) from exc
+
+    try:
+        async with AsyncOAuth2Client(
+            client_id, client_secret=client_secret, scope=scopes, redirect_uri=redirect_uri
+        ) as client:
+            token = await client.fetch_token(
+                metadata["token_endpoint"],
+                code=payload.code,
+                grant_type="authorization_code",
+            )
+    except OAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"OIDC token exchange failed: {exc}",
+        ) from exc
+
+    access_token = token.get("access_token")
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OIDC provider returned no access_token",
         )
-        token = await client.fetch_token(
-            metadata["token_endpoint"], code=payload.code,
-            grant_type="authorization_code",
-        )
-        userinfo = await client.userinfo()
+
+    try:
+        async with httpx.AsyncClient() as http_client:
+            userinfo_resp = await http_client.get(
+                metadata["userinfo_endpoint"],
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            userinfo_resp.raise_for_status()
+            userinfo = userinfo_resp.json()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"OIDC userinfo failed: {exc}",
+        ) from exc
 
     subject = str(userinfo.get("sub"))
     email = userinfo.get("email")
