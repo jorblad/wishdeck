@@ -61,6 +61,11 @@ module.exports = function (ctx) {
     },
     pwa: {
       workboxMode: 'GenerateSW',
+      workboxOptions: {
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallback: 'index.html',
+      },
       manifest: {
         name: 'WishDeck',
         short_name: 'WishDeck',

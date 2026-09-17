@@ -216,9 +216,16 @@ async def scrape_link(
         html = await _fetch_html(url)
     except httpx2.HTTPError as exc:
         logger.warning("Scrape failed for %s: %s", url, exc)
+        status_hint = ""
+        response = getattr(exc, "response", None)
+        if response is not None:
+            status_hint = f" ({response.status_code})"
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Unable to fetch URL: {exc}",
+            detail=(
+                f"Unable to fetch URL{status_hint}: {exc}. "
+                "Some sites block automated scraping."
+            ),
         ) from exc
 
     data = parse_metadata(html, url)

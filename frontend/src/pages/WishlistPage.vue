@@ -222,7 +222,7 @@ async function claim(item) {
   await load();
 }
 
-async function load() {
+async function load(attempt = 1) {
   loading.value = true;
   try {
     const data =
@@ -230,11 +230,18 @@ async function load() {
         ? (await api.get(`/wishlists/${route.params.id}`)).data
         : (await api.get(`/wishlists/public/${route.params.slug}`)).data;
     wishlist.value = data;
-  } catch {
+  } catch (e) {
+    console.error('Wishlist load failed:', e);
+    // Retry once after a short delay to handle transient races (e.g. service
+    // worker or DB replication lag right after creation).
+    if (attempt === 1) {
+      setTimeout(() => load(attempt + 1), 300);
+      return;
+    }
     wishlist.value = null;
   } finally {
     loading.value = false;
   }
 }
-onMounted(load);
+onMounted(() => load());
 </script>
