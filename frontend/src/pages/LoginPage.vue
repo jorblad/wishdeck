@@ -122,7 +122,7 @@ async function startOidc() {
     const issuer = (oidc.value.issuer_url || '').replace(/\/$/, '');
     const clientId = oidc.value.client_id;
     const scopes = oidc.value.scopes || 'openid email profile';
-    const redirect = `${window.location.origin}/#/oidc/callback`;
+    const redirect = `${window.location.origin}/oidc/callback`;
 
     // Use the issuer's OpenID Connect discovery document so this works for any
     // provider (Entra ID, Keycloak, Google, etc.) without hardcoded paths.

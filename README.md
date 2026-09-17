@@ -37,7 +37,7 @@ truth. The frontend:
 
 - Builds the login redirect from the provider's **discovery document**
   (works with Entra ID, Keycloak, Google, etc. — no hardcoded paths).
-- Uses `window.location.origin + /#/oidc/callback` as the `redirect_uri`.
+- Uses `window.location.origin + /oidc/callback` as the `redirect_uri`.
   This must be registered as a **reply URL** in your IdP.
 - Exchanges the returned `code` at `/api/v1/auth/oidc/callback` and stores the
   session cookie.
@@ -46,7 +46,7 @@ truth. The frontend:
 
 1. Register an app in Entra ID (App registrations).
 2. Add a **Web** platform redirect URI:
-   `https://<your-domain>/#/oidc/callback`
+   `https://<your-domain>/oidc/callback`
 3. Create a client secret.
 4. Set backend env vars:
 

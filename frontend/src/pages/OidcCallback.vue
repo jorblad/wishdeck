@@ -44,9 +44,9 @@ const title = computed(() =>
 );
 
 onMounted(async () => {
-  // With hash-mode routing the authorization server may return the code in the
-  // fragment (#/oidc/callback?code=...) or in the query string (?code=...). Read
-  // from both so the callback works regardless of provider behavior.
+  // Providers return the code/state/error as query parameters on the callback
+  // URL. The router query is the canonical source; we also check the raw search
+  // string as a fallback for unusual redirect patterns.
   const search = new URLSearchParams(window.location.search);
   const get = (k) => route.query[k] || search.get(k) || null;
   const code = get('code');
@@ -73,7 +73,7 @@ onMounted(async () => {
   }
   sessionStorage.removeItem('oidc_state');
 
-  const redirectUri = `${window.location.origin}/#/oidc/callback`;
+  const redirectUri = `${window.location.origin}/oidc/callback`;
   try {
     await api.post('/auth/oidc/callback', { code, redirect_uri: redirectUri });
     await auth.fetchMe();
