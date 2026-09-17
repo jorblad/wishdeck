@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Empty API_BASE means "same-origin" — the request goes through the dev (Vite)
 // or production (nginx) proxy for /api, avoiding cross-origin credential issues.
-const API_BASE = process.env.API_BASE || '';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 const baseURL = API_BASE ? `${API_BASE}/api/v1` : '/api/v1';
 
 const api = axios.create({
