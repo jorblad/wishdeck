@@ -24,7 +24,7 @@
 
 <script setup>
 import { onMounted, ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
@@ -33,6 +33,7 @@ import { useAuthStore } from 'stores/auth';
 const { t } = useI18n();
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 
 const status = ref('pending'); // 'pending' | 'error'
@@ -43,11 +44,15 @@ const title = computed(() =>
 );
 
 onMounted(async () => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  const state = params.get('state');
-  const error = params.get('error');
-  const errorDescription = params.get('error_description');
+  // With hash-mode routing the authorization server may return the code in the
+  // fragment (#/oidc/callback?code=...) or in the query string (?code=...). Read
+  // from both so the callback works regardless of provider behavior.
+  const search = new URLSearchParams(window.location.search);
+  const get = (k) => route.query[k] || search.get(k) || null;
+  const code = get('code');
+  const state = get('state');
+  const error = get('error');
+  const errorDescription = get('error_description');
 
   if (error) {
     status.value = 'error';
