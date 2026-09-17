@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # --- Core / infrastructure -------------------------------------------
     APP_NAME: str = "WishDeck"
-    APP_VERSION: str = "1.0.10"
+    APP_VERSION: str = "1.1.0"
     ENVIRONMENT: str = "production"  # development | production
     BASE_URL: str = "http://localhost:8000"
     LOG_LEVEL: str = "INFO"
