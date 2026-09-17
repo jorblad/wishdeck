@@ -26,10 +26,45 @@ logger = logging.getLogger("wishdeck.utils")
 
 router = APIRouter(prefix="/utils", tags=["utils"])
 
-_USER_AGENT = (
-    "Mozilla/5.0 (compatible; WishDeckBot/1.0; +https://wishdeck.example/robot)"
-)
 _TIMEOUT = 10.0
+
+# Rotating real browser UAs helps with simple bot-protection that keys on the
+# User-Agent string (403/406/429 responses). We try a few common desktop/mobile
+# browsers before falling back to a reader service.
+_BROWSER_UAS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+]
+
+# Status codes that usually mean the site is actively blocking our request.
+_BLOCK_CODES = frozenset({403, 429, 406, 502, 503, 504})
+
+
+def _browser_headers(user_agent: str) -> dict[str, str]:
+    """Return a set of headers that looks like a real browser navigation."""
+    return {
+        "User-Agent": user_agent,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.google.com/",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "cross-site",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control": "max-age=0",
+    }
+
+
+class ScrapeFetchError(Exception):
+    """Raised when every fetching strategy failed."""
+
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 # Map common currency symbols / prefixes to ISO-4217 codes.
 _CURRENCY_SYMBOLS = {
@@ -191,13 +226,116 @@ def parse_metadata(html: str, base_url: str) -> dict[str, str | None]:
     }
 
 
-async def _fetch_html(url: str) -> str:
+def _parse_jina_response(markdown: str, base_url: str) -> dict[str, str | None]:
+    """Extract metadata from Jina AI Reader's frontmatter markdown output."""
+    title = description = image_url = favicon = None
+    price = currency = None
+
+    # Parse YAML frontmatter if present.
+    frontmatter_match = re.search(r"^---\s*\n(.*?)\n---\s*\n", markdown, re.DOTALL)
+    if frontmatter_match:
+        fm = frontmatter_match.group(1)
+        title_match = re.search(r'^title:\s*"?([^"\n]+)"?', fm, re.MULTILINE)
+        desc_match = re.search(r'^description:\s*"?([^"\n]+)"?', fm, re.MULTILINE)
+        title = title_match.group(1).strip() if title_match else None
+        description = desc_match.group(1).strip() if desc_match else None
+        # Remove frontmatter so we don't parse the title twice.
+        markdown = markdown[frontmatter_match.end():]
+
+    # Fallback title from first Markdown heading.
+    if not title:
+        heading_match = re.search(r"^#\s+(.+)$", markdown, re.MULTILINE)
+        if heading_match:
+            title = heading_match.group(1).strip()
+
+    # Fallback description from first substantial paragraph.
+    if not description:
+        for line in markdown.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and not stripped.startswith("---"):
+                description = stripped
+                break
+
+    # Look for a price anywhere in the remaining text.
+    price, currency = _parse_amount(markdown)
+
+    return {
+        "title": title,
+        "description": description,
+        "price": price,
+        "currency": currency,
+        "image_url": image_url,
+        "favicon": favicon,
+    }
+
+
+def _jina_reader_url(url: str) -> str:
+    """Build a Jina AI Reader URL that fetches and extracts the target page."""
+    return f"https://r.jina.ai/{url}"
+
+
+async def _fetch_jina(url: str) -> str:
+    """Fetch extracted markdown for a URL via Jina AI Reader."""
+    jina_url = _jina_reader_url(url)
     async with httpx2.AsyncClient(
-        follow_redirects=True, timeout=_TIMEOUT, headers={"User-Agent": _USER_AGENT}
+        follow_redirects=True,
+        timeout=_TIMEOUT,
+        headers={"User-Agent": _BROWSER_UAS[0], "X-Respond-With": "frontmatter"},
     ) as client:
-        resp = await client.get(url)
+        resp = await client.get(jina_url)
         resp.raise_for_status()
         return resp.text
+
+
+async def _fetch_html(url: str) -> tuple[str, str]:
+    """Fetch page HTML, trying browser UAs and then a reader fallback.
+
+    Returns (content, source) where source is ``browser`` or ``jina``.
+    """
+    last_status: int | None = None
+    last_error: Exception | None = None
+
+    for ua in _BROWSER_UAS:
+        async with httpx2.AsyncClient(
+            follow_redirects=True, timeout=_TIMEOUT, headers=_browser_headers(ua)
+        ) as client:
+            try:
+                resp = await client.get(url)
+            except httpx2.HTTPError as exc:
+                last_error = exc
+                continue
+
+            if resp.status_code in _BLOCK_CODES:
+                logger.info(
+                    "Scrape %s returned %s with UA %r; rotating...",
+                    url,
+                    resp.status_code,
+                    ua[:40],
+                )
+                last_status = resp.status_code
+                continue
+
+            try:
+                resp.raise_for_status()
+            except httpx2.HTTPError as exc:
+                last_error = exc
+                continue
+
+            return resp.text, "browser"
+
+    # Last resort: use Jina AI Reader. It renders JS and often bypasses simple
+    # bot protection, but returns markdown instead of raw HTML.
+    logger.info("Browser fetch blocked for %s; trying Jina AI reader fallback", url)
+    try:
+        return await _fetch_jina(url), "jina"
+    except httpx2.HTTPError as exc:
+        last_error = exc
+
+    hint = f" ({last_status})" if last_status else ""
+    raise ScrapeFetchError(
+        f"Unable to fetch URL{hint}: all browser UAs blocked or request failed.",
+        status_code=last_status,
+    ) from last_error
 
 
 @router.post("/scrape-link", response_model=ScrapeLinkResponse, status_code=status.HTTP_200_OK)
@@ -213,22 +351,32 @@ async def scrape_link(
             detail="A valid http(s) URL is required.",
         )
     try:
-        html = await _fetch_html(url)
-    except httpx2.HTTPError as exc:
+        content, source = await _fetch_html(url)
+    except ScrapeFetchError as exc:
         logger.warning("Scrape failed for %s: %s", url, exc)
-        status_hint = ""
-        response = getattr(exc, "response", None)
-        if response is not None:
-            status_hint = f" ({response.status_code})"
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=(
-                f"Unable to fetch URL{status_hint}: {exc}. "
+                f"Unable to fetch URL{f' ({exc.status_code})' if exc.status_code else ''}: {exc}. "
                 "Some sites block automated scraping."
             ),
         ) from exc
 
-    data = parse_metadata(html, url)
+    if source == "jina":
+        data = _parse_jina_response(content, url)
+    else:
+        data = parse_metadata(content, url)
+        # Some sites return a 200 OK bot/captcha page with no useful metadata.
+        # Give Jina AI Reader a second chance before giving up.
+        if not data.get("title") and not data.get("description"):
+            logger.info("Browser scrape returned no metadata for %s; trying Jina fallback", url)
+            try:
+                jina_data = _parse_jina_response(await _fetch_jina(url), url)
+                if jina_data.get("title") or jina_data.get("description"):
+                    data = {**data, **{k: v for k, v in jina_data.items() if v is not None}}
+            except httpx2.HTTPError:
+                pass
+
     # Fall back to the configured default currency when none was detected.
     if data["price"] is not None and not data["currency"]:
         data["currency"] = await effective_value("DEFAULT_CURRENCY", session) or "USD"

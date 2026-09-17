@@ -53,7 +53,7 @@
       <div class="text-caption q-mb-md">{{ wishlist.description }}</div>
 
       <div class="row q-col-gutter-sm q-mb-md">
-        <div class="col-12 col-sm-4">
+        <div class="col-12" :class="wishlist.allow_claims ? 'col-sm-4' : 'col-sm-6'">
           <q-select
             v-model="itemSortBy"
             :options="itemSortOptions"
@@ -64,7 +64,7 @@
             map-options
           />
         </div>
-        <div class="col-12 col-sm-4">
+        <div class="col-12" :class="wishlist.allow_claims ? 'col-sm-4' : 'col-sm-6'">
           <q-select
             v-model="itemFilterCategory"
             :options="categoryFilterOptions"
@@ -76,7 +76,7 @@
             clearable
           />
         </div>
-        <div class="col-12 col-sm-4">
+        <div v-if="wishlist.allow_claims" class="col-12 col-sm-4">
           <q-select
             v-model="itemFilterStatus"
             :options="statusFilterOptions"
@@ -249,6 +249,13 @@ const itemSortBy = ref('priority');
 const itemFilterCategory = ref(null);
 const itemFilterStatus = ref(null);
 
+watch(
+  () => wishlist.value?.allow_claims,
+  (allow) => {
+    if (!allow) itemFilterStatus.value = null;
+  }
+);
+
 const itemSortOptions = computed(() => [
   { label: t('wishlist.sort.priority'), value: 'priority' },
   { label: t('wishlist.sort.priceAsc'), value: 'priceAsc' },
@@ -334,7 +341,7 @@ const grouped = computed(() => {
   let items = (wishlist.value.items || []).filter((item) => {
     if (item.archived && !showArchived.value) return false;
     if (itemFilterCategory.value && item.category_id !== itemFilterCategory.value) return false;
-    if (itemFilterStatus.value && item.status !== itemFilterStatus.value) return false;
+    if (wishlist.value.allow_claims && itemFilterStatus.value && item.status !== itemFilterStatus.value) return false;
     return true;
   });
   items = [...items].sort((a, b) => {

@@ -16,20 +16,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.alter_column(
-        "wish_items",
-        "quantity",
-        existing_type=sa.Integer(),
-        nullable=True,
-        server_default=None,
-    )
+    # Use batch mode so this works on SQLite (which cannot ALTER COLUMN).
+    with op.batch_alter_table("wish_items") as batch_op:
+        batch_op.alter_column(
+            "quantity",
+            existing_type=sa.Integer(),
+            nullable=True,
+            server_default=None,
+        )
 
 
 def downgrade() -> None:
-    op.alter_column(
-        "wish_items",
-        "quantity",
-        existing_type=sa.Integer(),
-        nullable=False,
-        server_default="1",
-    )
+    with op.batch_alter_table("wish_items") as batch_op:
+        batch_op.alter_column(
+            "quantity",
+            existing_type=sa.Integer(),
+            nullable=False,
+            server_default="1",
+        )

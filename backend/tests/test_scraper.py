@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.api.v1.utils import parse_metadata
+from app.api.v1.utils import parse_metadata, _parse_jina_response
 
 
 HTML = """
@@ -39,3 +39,30 @@ def test_parse_metadata_missing_fields():
     data = parse_metadata("<html><head><title>Hi</title></head></html>", "https://x.com")
     assert data["title"] == "Hi"
     assert data["price"] is None
+
+
+JINA_MARKDOWN = """---
+title: "Awesome Gadget"
+description: "The best gadget ever."
+url: "https://shop.example.com/product/1"
+---
+
+# Awesome Gadget
+
+The best gadget ever. Only **$1,299.00** today.
+"""
+
+
+def test_parse_jina_response_extracts_frontmatter():
+    data = _parse_jina_response(JINA_MARKDOWN, "https://shop.example.com/product/1")
+    assert data["title"] == "Awesome Gadget"
+    assert data["description"] == "The best gadget ever."
+    assert data["price"] == 1299.00
+    assert data["currency"] == "USD"
+
+
+def test_parse_jina_response_fallback_to_heading_and_paragraph():
+    markdown = "# Fallback Title\n\nFallback description paragraph.\n"
+    data = _parse_jina_response(markdown, "https://x.com")
+    assert data["title"] == "Fallback Title"
+    assert data["description"] == "Fallback description paragraph."

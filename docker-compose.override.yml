@@ -24,6 +24,11 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules   # keep container's alpine node_modules (not the host's)
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9000/').then(r=>{if(!r.ok) throw new Error(r.status);}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   db-data:
