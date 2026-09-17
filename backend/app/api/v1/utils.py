@@ -3,7 +3,7 @@
 Accepts a product URL and extracts OpenGraph / JSON-LD / generic metadata:
 title, description, price, currency, image_url and favicon.
 
-Uses httpx for fetching and BeautifulSoup4 for parsing. Runs in a threadpool
+Uses httpx2 for fetching and BeautifulSoup4 for parsing. Runs in a threadpool
 because the libraries are currently synchronous.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import logging
 import re
 from urllib.parse import urljoin, urlparse
 
-import httpx
+import httpx2
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -192,7 +192,7 @@ def parse_metadata(html: str, base_url: str) -> dict[str, str | None]:
 
 
 async def _fetch_html(url: str) -> str:
-    async with httpx.AsyncClient(
+    async with httpx2.AsyncClient(
         follow_redirects=True, timeout=_TIMEOUT, headers={"User-Agent": _USER_AGENT}
     ) as client:
         resp = await client.get(url)
@@ -214,7 +214,7 @@ async def scrape_link(
         )
     try:
         html = await _fetch_html(url)
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         logger.warning("Scrape failed for %s: %s", url, exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
