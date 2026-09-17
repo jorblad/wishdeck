@@ -37,6 +37,20 @@ def _set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(**cookie_props(), value=token)
 
 
+async def _unique_username(session: AsyncSession, base: str) -> str:
+    """Return a username based on ``base`` that does not already exist."""
+    candidate = base
+    counter = 1
+    while True:
+        exists = (
+            await session.execute(select(User).where(User.username == candidate))
+        ).scalar_one_or_none()
+        if not exists:
+            return candidate
+        counter += 1
+        candidate = f"{base}{counter}"
+
+
 # --------------------------------------------------------------------------
 # Local auth
 # --------------------------------------------------------------------------
@@ -217,9 +231,11 @@ async def oidc_callback(
             existing.auth_provider = AuthProvider.OIDC
             user = existing
         else:
+            base_username = email.split("@")[0]
+            username = await _unique_username(session, base_username)
             user = User(
                 email=email,
-                username=email.split("@")[0],
+                username=username,
                 full_name=userinfo.get("name"),
                 avatar_url=userinfo.get("picture"),
                 auth_provider=AuthProvider.OIDC,
