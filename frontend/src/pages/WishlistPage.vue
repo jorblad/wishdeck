@@ -34,6 +34,17 @@
         >
           <q-tooltip>{{ t('wishlist.editTitle') }}</q-tooltip>
         </q-btn>
+        <q-btn
+          v-if="isOwner"
+          flat
+          round
+          dense
+          :icon="showArchived ? 'unarchive' : 'archive'"
+          :color="showArchived ? 'warning' : ''"
+          @click="showArchived = !showArchived"
+        >
+          <q-tooltip>{{ showArchived ? t('item.hideArchived') : t('item.showArchived') }}</q-tooltip>
+        </q-btn>
       </div>
       <div v-if="wishlist.visibility === 'private'" class="text-caption text-negative q-mb-md">
         {{ t('wishlist.privateShareHint') }}
@@ -66,6 +77,7 @@
             <q-item-section side>
               <template v-if="isOwner">
                 <q-btn
+                  v-if="!item.archived"
                   size="sm"
                   flat
                   round
@@ -73,6 +85,17 @@
                   @click.stop="archiveItem(item)"
                 >
                   <q-tooltip>{{ t('item.archive') }}</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-else
+                  size="sm"
+                  flat
+                  round
+                  icon="unarchive"
+                  color="warning"
+                  @click.stop="unarchiveItem(item)"
+                >
+                  <q-tooltip>{{ t('item.unarchive') }}</q-tooltip>
                 </q-btn>
                 <q-btn
                   size="sm"
@@ -160,7 +183,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
@@ -181,6 +204,7 @@ const editDialog = ref({ open: false, wishlist: null });
 const quickAddOpen = ref(false);
 const itemDialog = ref({ open: false, item: null });
 const shareOpen = ref(false);
+const showArchived = ref(false);
 
 const isOwner = computed(
   () => !!wishlist.value && wishlist.value.owner_id === auth.user?.id
@@ -247,7 +271,7 @@ const grouped = computed(() => {
   if (!wishlist.value) return [];
   const map = {};
   for (const item of wishlist.value.items || []) {
-    if (item.archived) continue;
+    if (item.archived && !showArchived.value) continue;
     const cat = wishlist.value.categories.find((c) => c.id === item.category_id);
     const name = cat ? cat.name : t('wishlist.uncategorized');
     (map[name] ||= { name, items: [] }).items.push(item);
@@ -288,14 +312,27 @@ async function archiveItem(item) {
     });
   }
 }
+async function unarchiveItem(item) {
+  try {
+    await api.put(`/wishlists/items/${item.id}`, { archived: false });
+    item.archived = false;
+    $q.notify({ type: 'positive', message: t('item.unarchived') });
+  } catch (e) {
+    $q.notify({
+      type: 'negative',
+      message: e?.response?.data?.detail || t('item.unarchiveFailed'),
+    });
+  }
+}
 
 async function load(attempt = 1) {
   loading.value = true;
   try {
+    const params = showArchived.value ? { include_archived: true } : {};
     const data =
       route.name === 'owner-wishlist'
-        ? (await api.get(`/wishlists/${route.params.id}`)).data
-        : (await api.get(`/wishlists/public/${route.params.slug}`)).data;
+        ? (await api.get(`/wishlists/${route.params.id}`, { params })).data
+        : (await api.get(`/wishlists/public/${route.params.slug}`, { params })).data;
     wishlist.value = data;
   } catch (e) {
     console.error('Wishlist load failed:', e);

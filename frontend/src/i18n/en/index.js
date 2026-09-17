@@ -110,6 +110,11 @@ export default {
     deleteConfirmTitle: 'Delete item',
     deleteConfirmMessage: 'Delete "{title}"? This cannot be undone.',
     categoryCreateFailed: 'Could not create category',
+    showArchived: 'Show archived items',
+    hideArchived: 'Hide archived items',
+    unarchive: 'Unarchive',
+    unarchived: 'Item unarchived',
+    unarchiveFailed: 'Could not unarchive item',
   },
   users: {
     title: 'User management',

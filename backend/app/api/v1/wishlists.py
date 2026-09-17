@@ -41,6 +41,7 @@ router = APIRouter(prefix="/wishlists", tags=["wishlists"])
 @router.get("", response_model=list[WishlistOut])
 async def list_my_wishlists(
     archived: bool = False,
+    include_archived_items: bool = False,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[Wishlist]:
@@ -50,8 +51,9 @@ async def list_my_wishlists(
         .where(Wishlist.owner_id == user.id, Wishlist.archived == archived)
         .order_by(Wishlist.created_at.desc())
     )).scalars().all()
-    for wl in rows:
-        _exclude_archived_items(wl)
+    if not include_archived_items:
+        for wl in rows:
+            _exclude_archived_items(wl)
     return rows
 
 
@@ -78,12 +80,14 @@ async def create_wishlist(
 @router.get("/{wishlist_id}", response_model=WishlistOut)
 async def get_wishlist(
     wishlist_id: str,
+    include_archived: bool = False,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Wishlist:
     wl = await _get_owned(session, wishlist_id, user)
     await session.refresh(wl, attribute_names=["categories", "items"])
-    _exclude_archived_items(wl)
+    if not include_archived:
+        _exclude_archived_items(wl)
     return wl
 
 
@@ -236,6 +240,7 @@ async def _get_item_for_owner(session: AsyncSession, item_id: str, user: User) -
 async def public_wishlist(
     slug: str,
     request: Request,
+    include_archived: bool = False,
     session: AsyncSession = Depends(get_session),
 ) -> Wishlist:
     wl = (await session.execute(
@@ -247,7 +252,8 @@ async def public_wishlist(
         raise HTTPException(status_code=404, detail="Not found")
     if wl.visibility.value == Visibility.PRIVATE.value:
         raise HTTPException(status_code=403, detail="Private list")
-    _exclude_archived_items(wl)
+    if not include_archived:
+        _exclude_archived_items(wl)
     return wl
 
 

@@ -110,6 +110,11 @@ export default {
     deleteConfirmTitle: 'Ta bort sak',
     deleteConfirmMessage: 'Ta bort "{title}"? Detta kan inte ångras.',
     categoryCreateFailed: 'Kunde inte skapa kategori',
+    showArchived: 'Visa arkiverade saker',
+    hideArchived: 'Dölj arkiverade saker',
+    unarchive: 'Avarkivera',
+    unarchived: 'Sak avarkiverad',
+    unarchiveFailed: 'Kunde inte avarkivera saken',
   },
   users: {
     title: 'Användarhantering',
