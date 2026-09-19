@@ -7,7 +7,7 @@ aiosqlite==0.22.1
 # requires an async DBAPI; psycopg3 is used via the `postgresql+psycopg://`
 # dialect. A bare CNPG `postgresql://` URI is rewritten to that dialect in
 # app/core/config.py, so the operator-provided secret can be used as-is.
-psycopg[binary]==3.3.5
+psycopg[binary]==3.3.6
 pydantic==2.13.5
 pydantic-settings==2.15.0
 python-multipart==0.0.32
