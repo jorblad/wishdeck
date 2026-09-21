@@ -3,19 +3,19 @@
 # ---- Build stage ----
 FROM node:24-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install -g @quasar/cli && npm install --legacy-peer-deps
+COPY package.json ./
+RUN npm install -g @quasar/cli && npm install --legacy-peer-deps --no-package-lock
 COPY . .
 RUN quasar build
 
 # ---- Dev stage (keeps Node + quasar CLI for hot reload) ----
 FROM node:24-alpine AS dev
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install -g @quasar/cli && npm install --legacy-peer-deps
+COPY package.json ./
+RUN npm install -g @quasar/cli && npm install --legacy-peer-deps --no-package-lock
 COPY . .
 EXPOSE 9000
-CMD ["sh", "-c", "npm install --legacy-peer-deps && quasar dev --hostname 0.0.0.0 --port 9000"]
+CMD ["sh", "-c", "npm install --legacy-peer-deps --no-package-lock && quasar dev --hostname 0.0.0.0 --port 9000"]
 
 # ---- Runtime (production) stage ----
 FROM nginx:1.31-alpine AS runtime
