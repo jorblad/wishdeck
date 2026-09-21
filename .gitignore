@@ -11,6 +11,8 @@ node_modules/
 dist/
 .quasar/
 npm-debug.log*
+package-lock.json
+frontend/package-lock.json
 
 # Env / secrets / runtime data
 .env
