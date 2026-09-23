@@ -61,7 +61,40 @@ truth. The frontend:
 
 5. Restart the backend; the login page shows the SSO button.
 
-### Local development
+## Mobile add-from-share
+
+WishDeck can receive links from other apps via the Web Share Target API.
+
+### Android
+
+1. Install the PWA: open WishDeck in Chrome → **Add to Home screen**.
+2. In any app (e.g. Chrome, YouTube, Twitter), tap **Share** and choose **WishDeck**.
+3. WishDeck opens on the `/add` page with the URL and title pre-filled.
+4. Pick a wishlist and tap **Save**.
+
+This requires a browser that supports the Web Share Target API (Chrome on Android
+and most Chromium-based Android browsers). It is not available on iOS Safari.
+
+### iOS / fallback
+
+On iOS, create a bookmarklet:
+
+1. Copy the snippet below and replace `https://wishdeck.example.com` with your
+   WishDeck host:
+
+   ```javascript
+   javascript:(function(){const url=encodeURIComponent(location.href);const title=encodeURIComponent(document.title);window.open('https://wishdeck.example.com/add?url='+url+'&title='+title,'_blank');})();
+   ```
+
+2. Add any page to your Safari bookmarks, then edit the bookmark and paste the
+   snippet above into the URL/address field.
+3. Tap the bookmarklet on a product page to open `/add` pre-filled.
+
+### Browser extension
+
+For desktop Chrome/Edge, see [`browser-extension/README.md`](browser-extension/README.md).
+
+## Local development
 
 Use the bundled `docker-compose.yml` (frontend + backend + Postgres). Copy
 `.env.example` if present and adjust `SECRET_KEY` and `DATABASE_URL`.
