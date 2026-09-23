@@ -61,15 +61,6 @@ module.exports = function (ctx) {
         clientsClaim: true,
         navigateFallback: 'index.html',
       },
-      manifest: {
-        name: 'WishDeck',
-        short_name: 'WishDeck',
-        description: 'Multi-tenant collaborative wishlists',
-        display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#ffffff',
-        theme_color: '#1976d2',
-      },
     },
   };
 };

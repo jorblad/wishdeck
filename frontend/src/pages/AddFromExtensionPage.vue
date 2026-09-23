@@ -4,6 +4,9 @@
     <q-banner v-if="fromExtension" class="bg-info text-white q-mb-md rounded-borders">
       {{ t('addFromExtension.autoCloseHint') }}
     </q-banner>
+    <q-banner v-else-if="fromShare" class="bg-info text-white q-mb-md rounded-borders">
+      {{ t('addFromExtension.shareHint') }}
+    </q-banner>
 
     <q-card>
       <q-card-section>
@@ -145,10 +148,10 @@ watch(
 );
 
 onMounted(async () => {
-  const queryUrl = route.query.url || '';
-  const queryTitle = route.query.title || '';
-  form.url = typeof queryUrl === 'string' ? queryUrl : '';
-  form.title = typeof queryTitle === 'string' ? queryTitle : '';
+  const { url, title, text } = parseSharedData();
+  form.url = url;
+  form.title = title;
+  form.description = text || '';
 
   try {
     const { data } = await api.get('/wishlists');
@@ -184,6 +187,46 @@ async function scrape() {
 }
 
 const fromExtension = computed(() => route.query.source === 'extension');
+const fromShare = computed(
+  () =>
+    route.query.source === 'share' ||
+    route.query.share === 'true' ||
+    (!fromExtension.value && (!!route.query.url || !!route.query.text))
+);
+
+function extractUrl(text) {
+  if (!text) return '';
+  const match = text.match(/https?:\/\/[^\s<>"'`)\]\}]+/i);
+  return match ? match[0] : '';
+}
+
+function parseSharedData() {
+  let queryUrl = route.query.url || '';
+  let queryTitle = route.query.title || '';
+  let queryText = route.query.text || '';
+
+  queryUrl = typeof queryUrl === 'string' ? queryUrl : '';
+  queryTitle = typeof queryTitle === 'string' ? queryTitle : '';
+  queryText = typeof queryText === 'string' ? queryText : '';
+
+  if (!queryUrl && queryText) {
+    queryUrl = extractUrl(queryText);
+  }
+
+  if (!queryTitle && queryText && queryUrl) {
+    // Some apps put "Title https://..." in text; use whatever precedes the URL.
+    const idx = queryText.indexOf(queryUrl);
+    if (idx > 0) {
+      queryTitle = queryText.slice(0, idx).trim().replace(/[\s:–—-]+$/, '');
+    }
+  }
+
+  if (!queryTitle && queryText && !queryUrl) {
+    queryTitle = queryText.slice(0, 120);
+  }
+
+  return { url: queryUrl, title: queryTitle, text: queryText };
+}
 
 async function submit() {
   if (!wishlistId.value || !form.title) return;

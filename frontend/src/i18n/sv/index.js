@@ -147,6 +147,7 @@ export default {
     scrapeFailed: 'Kunde inte hämta länkinfo',
     loadWishlistsFailed: 'Kunde inte ladda önskelistor',
     autoCloseHint: 'Den här fliken stängs automatiskt efter sparandet.',
+    shareHint: 'Delad från en annan app. Välj en önskelista och tryck på Spara.',
   },
   item: {
     editTitle: 'Redigera sak',

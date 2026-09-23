@@ -147,6 +147,7 @@ export default {
     scrapeFailed: 'Could not scrape link',
     loadWishlistsFailed: 'Could not load wishlists',
     autoCloseHint: 'This tab will close automatically after saving.',
+    shareHint: 'Shared from another app. Choose a wishlist and tap Save.',
   },
   item: {
     editTitle: 'Edit item',
