@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install -g @quasar/cli && npm install --legacy-peer-deps --no-package-lock
 COPY . .
-RUN quasar build
+RUN quasar build -m pwa
 
 # ---- Dev stage (keeps Node + quasar CLI for hot reload) ----
 FROM node:24-alpine AS dev
@@ -19,7 +19,7 @@ CMD ["sh", "-c", "npm install --legacy-peer-deps --no-package-lock && quasar dev
 
 # ---- Runtime (production) stage ----
 FROM nginx:1.31-alpine AS runtime
-COPY --from=build /app/dist/spa /usr/share/nginx/html
+COPY --from=build /app/dist/pwa /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

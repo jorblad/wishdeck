@@ -1,4 +1,7 @@
 {
+  "name": "WishDeck",
+  "short_name": "WishDeck",
+  "description": "Multi-tenant collaborative wishlists",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",
