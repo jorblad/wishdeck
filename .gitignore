@@ -14,6 +14,9 @@ npm-debug.log*
 package-lock.json
 frontend/package-lock.json
 
+# Browser extension build output
+browser-extension/dist/
+
 # Env / secrets / runtime data
 .env
 .env.local

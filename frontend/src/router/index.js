@@ -27,7 +27,9 @@ export default route(function () {
           return { name: 'login' };
         }
       }
-      if (!auth.isAuthenticated) return { name: 'login' };
+      if (!auth.isAuthenticated) {
+        return { name: 'login', query: { redirect: to.fullPath } };
+      }
     }
     if (to.meta.requiresAdmin && !auth.isAdmin) {
       return { name: 'home' };

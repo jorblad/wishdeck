@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "WishDeck Add",
+  "version": "1.0.0",
+  "description": "Add items to your WishDeck lists from any web page.",
+  "permissions": ["contextMenus", "activeTab", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
