@@ -27,6 +27,12 @@ const routes = [
         component: () => import('pages/WishlistPage.vue'),
         meta: { requiresAuth: true },
       },
+      {
+        path: 'add',
+        name: 'add-from-extension',
+        component: () => import('pages/AddFromExtensionPage.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
   {

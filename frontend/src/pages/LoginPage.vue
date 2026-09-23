@@ -55,7 +55,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
@@ -65,6 +65,7 @@ const { t } = useI18n();
 const $q = useQuasar();
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 const mode = ref('login');
 const email = ref('');
@@ -85,7 +86,12 @@ onMounted(async () => {
 
 async function afterAuth() {
   await auth.fetchMe();
-  router.push('/');
+  const redirect = route.query.redirect;
+  if (typeof redirect === 'string' && redirect.startsWith('/')) {
+    router.push(redirect);
+  } else {
+    router.push('/');
+  }
 }
 
 async function localLogin() {
