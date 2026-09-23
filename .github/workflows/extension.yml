@@ -1,0 +1,37 @@
+name: Extension
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Package browser extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: browser-extension
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build extension zip
+        run: node build.js
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wishdeck-extension
+          path: browser-extension/dist/wishdeck-extension.zip
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: browser-extension/dist/wishdeck-extension.zip
