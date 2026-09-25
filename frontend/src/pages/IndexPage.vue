@@ -45,7 +45,19 @@
     <q-list bordered separator class="q-mt-md">
       <q-item v-for="wl in filteredWishlists" :key="wl.id">
         <q-item-section clickable @click="open(wl)">
-          <q-item-label>{{ wl.title }}</q-item-label>
+          <q-item-label>
+            {{ wl.title }}
+            <q-chip
+              v-if="wl.shared_with_me"
+              size="sm"
+              color="teal"
+              text-color="white"
+              icon="group"
+              class="q-ml-xs"
+            >
+              {{ wl.can_edit ? t('collaborators.shared') : t('collaborators.sharedView') }}
+            </q-chip>
+          </q-item-label>
           <q-item-label caption>{{ wl.visibility }}</q-item-label>
         </q-item-section>
         <q-item-section side>
@@ -54,6 +66,7 @@
             flat
             round
             icon="edit"
+            :disable="!wl.can_edit"
             @click.stop="openEdit(wl)"
           >
             <q-tooltip>{{ $t('wishlist.editTitle') }}</q-tooltip>
@@ -63,6 +76,7 @@
             flat
             round
             icon="add_shopping_cart"
+            :disable="!wl.can_edit"
             @click.stop="openQuickAdd(wl)"
           >
             <q-tooltip>{{ $t('quickAdd.add') }}</q-tooltip>

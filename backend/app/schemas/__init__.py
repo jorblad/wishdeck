@@ -178,6 +178,42 @@ class WishlistOut(WishlistBase):
     archived: bool
     categories: list[CategoryOut] = []
     items: list[WishItemOut] = []
+    shared_with_me: bool = False
+    can_edit: bool = False
+    collaborator_count: int = 0
+
+
+class CollaboratorUser(BaseModel):
+    id: str
+    email: str
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+
+
+class WishlistShareOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    wishlist_id: str
+    user_id: str
+    can_edit: bool
+    user: CollaboratorUser
+
+
+class WishlistShareCreate(BaseModel):
+    user_id: str
+    can_edit: bool = True
+
+
+class WishlistShareUpdate(BaseModel):
+    can_edit: bool
+
+
+class UserSearchOut(BaseModel):
+    id: str
+    email: str
+    username: Optional[str] = None
+    full_name: Optional[str] = None
 
 
 __all__ = [
@@ -202,4 +238,9 @@ __all__ = [
     "WishlistCreate",
     "WishlistUpdate",
     "WishlistOut",
+    "CollaboratorUser",
+    "WishlistShareOut",
+    "WishlistShareCreate",
+    "WishlistShareUpdate",
+    "UserSearchOut",
 ]

@@ -5,12 +5,18 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user, get_optional_user
 from app.api.v1.utils import parse_bulk_items, _scrape_link_data
+from app.api.v1.wishlist_access import (
+    assert_edit,
+    assert_manage,
+    assert_read,
+    get_wishlist_or_404,
+)
 from app.core.config import effective_value
 from app.models.core import _uuid
 from app.db.session import get_session
@@ -21,6 +27,7 @@ from app.models.wishlist import (
     Visibility,
     WishItem,
     Wishlist,
+    WishlistShare,
 )
 from app.schemas import (
     BulkItemImportRequest,
@@ -48,14 +55,23 @@ async def list_my_wishlists(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[Wishlist]:
+    shared_ids = select(WishlistShare.wishlist_id).where(WishlistShare.user_id == user.id)
     rows = (await session.execute(
         select(Wishlist)
-        .options(selectinload(Wishlist.categories), selectinload(Wishlist.items))
-        .where(Wishlist.owner_id == user.id, Wishlist.archived == archived)
+        .options(
+            selectinload(Wishlist.categories),
+            selectinload(Wishlist.items),
+            selectinload(Wishlist.shares),
+        )
+        .where(
+            Wishlist.archived == archived,
+            or_(Wishlist.owner_id == user.id, Wishlist.id.in_(shared_ids)),
+        )
         .order_by(Wishlist.created_at.desc())
     )).scalars().all()
-    if not include_archived_items:
-        for wl in rows:
+    for wl in rows:
+        _apply_share_flags(wl, user)
+        if not include_archived_items:
             _exclude_archived_items(wl)
     return rows
 
@@ -76,7 +92,8 @@ async def create_wishlist(
     )
     session.add(wl)
     await session.flush()
-    await session.refresh(wl, attribute_names=["categories", "items"])
+    await session.refresh(wl, attribute_names=["categories", "items", "shares"])
+    _apply_share_flags(wl, user)
     return wl
 
 
@@ -87,8 +104,10 @@ async def get_wishlist(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Wishlist:
-    wl = await _get_owned(session, wishlist_id, user)
-    await session.refresh(wl, attribute_names=["categories", "items"])
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_read(session, wl, user)
+    await session.refresh(wl, attribute_names=["categories", "items", "shares"])
+    _apply_share_flags(wl, user)
     if not include_archived:
         _exclude_archived_items(wl)
     return wl
@@ -101,11 +120,13 @@ async def update_wishlist(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Wishlist:
-    wl = await _get_owned(session, wishlist_id, user)
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_edit(session, wl, user)
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(wl, k, Visibility(v) if k == "visibility" else v)
     await session.flush()
-    await session.refresh(wl, attribute_names=["categories", "items"])
+    await session.refresh(wl, attribute_names=["categories", "items", "shares"])
+    _apply_share_flags(wl, user)
     return wl
 
 
@@ -116,21 +137,24 @@ async def delete_wishlist(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Response:
-    wl = await _get_owned(session, wishlist_id, user)
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_manage(session, wl, user)
     await session.delete(wl)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
 
 
-async def _get_owned(session: AsyncSession, wl_id: str, user: User) -> Wishlist:
-    wl = (await session.execute(
-        select(Wishlist).where(Wishlist.id == wl_id)
-    )).scalar_one_or_none()
-    if not wl:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-    if wl.owner_id != user.id and user.role.value != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
-    return wl
+def _apply_share_flags(wl: Wishlist, user: User) -> None:
+    """Populate share-specific output fields on a loaded wishlist."""
+    wl.collaborator_count = len(wl.shares)
+    # Owners and admins are always managers (can edit); they are not "shared with".
+    if wl.owner_id == user.id or user.role.value == "admin":
+        wl.shared_with_me = False
+        wl.can_edit = True
+    else:
+        share = next((s for s in wl.shares if s.user_id == user.id), None)
+        wl.shared_with_me = share is not None
+        wl.can_edit = bool(share and share.can_edit)
 
 
 # --------------------------------------------------------------------------
@@ -143,7 +167,8 @@ async def add_category(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Category:
-    await _get_owned(session, wishlist_id, user)
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_edit(session, wl, user)
     cat = Category(wishlist_id=wishlist_id, **payload.model_dump())
     session.add(cat)
     await session.flush()
@@ -160,7 +185,8 @@ async def add_item(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> WishItem:
-    await _get_owned(session, wishlist_id, user)
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_edit(session, wl, user)
     item = WishItem(wishlist_id=wishlist_id, **payload.model_dump())
     session.add(item)
     await session.flush()
@@ -175,7 +201,8 @@ async def bulk_import_items(
     user: User = Depends(get_current_user),
 ) -> BulkItemImportResponse:
     """Create many wishes from a pasted plain-text list."""
-    await _get_owned(session, wishlist_id, user)
+    wl = await get_wishlist_or_404(session, wishlist_id)
+    await assert_edit(session, wl, user)
     entries = parse_bulk_items(payload.text)
     created: list[WishItem] = []
     for entry in entries:
@@ -270,11 +297,8 @@ async def _get_item_for_owner(session: AsyncSession, item_id: str, user: User) -
     )).scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Not found")
-    wl = (await session.execute(
-        select(Wishlist).where(Wishlist.id == item.wishlist_id)
-    )).scalar_one_or_none()
-    if wl.owner_id != user.id and user.role.value != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
+    wl = await get_wishlist_or_404(session, item.wishlist_id)
+    await assert_edit(session, wl, user)
     return item
 
 

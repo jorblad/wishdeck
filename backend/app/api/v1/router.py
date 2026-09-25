@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.v1 import auth, settings, utils, wishlists
+from app.api.v1 import auth, settings, shares, users, utils, wishlists
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal
 
@@ -12,6 +12,8 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
 api_router.include_router(settings.router)
 api_router.include_router(wishlists.router)
+api_router.include_router(shares.router)
+api_router.include_router(users.router)
 api_router.include_router(utils.router)
 
 
