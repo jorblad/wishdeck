@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String, Text
+from sqlalchemy import Boolean, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -42,6 +42,34 @@ class Wishlist(Base, TimestampMixin):
     categories: Mapped[list["Category"]] = relationship(
         back_populates="wishlist", cascade="all, delete-orphan"
     )
+    shares: Mapped[list["WishlistShare"]] = relationship(
+        back_populates="wishlist", cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class WishlistShare(Base, TimestampMixin):
+    """A user that the owner/admin has shared a wishlist with.
+
+    ``can_edit`` controls whether the collaborator may modify the list (items,
+    categories, metadata). View-only shares let someone see a private list
+    without editing it.
+    """
+
+    __tablename__ = "wishlist_shares"
+    __table_args__ = (UniqueConstraint("wishlist_id", "user_id", name="uq_wishlist_user"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    wishlist_id: Mapped[str] = mapped_column(
+        ForeignKey("wishlists.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    can_edit: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    wishlist: Mapped["Wishlist"] = relationship(back_populates="shares")  # noqa: F821
+    user: Mapped["User"] = relationship(lazy="selectin")  # noqa: F821
 
 
 class Category(Base, TimestampMixin):
@@ -94,4 +122,4 @@ class WishItem(Base, TimestampMixin):
     category: Mapped["Category | None"] = relationship(back_populates=None)  # noqa: F821
 
 
-__all__ = ["Wishlist", "Category", "WishItem", "Visibility", "ClaimStatus"]
+__all__ = ["Wishlist", "Category", "WishItem", "Visibility", "ClaimStatus", "WishlistShare"]

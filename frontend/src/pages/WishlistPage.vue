@@ -16,7 +16,17 @@
           <q-tooltip>{{ t('wishlist.share') }}</q-tooltip>
         </q-btn>
         <q-btn
-          v-if="isOwner"
+          v-if="canManage"
+          flat
+          round
+          dense
+          icon="group_add"
+          @click="collaboratorsOpen = true"
+        >
+          <q-tooltip>{{ t('collaborators.title') }}</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="canEdit"
           flat
           round
           dense
@@ -26,7 +36,7 @@
           <q-tooltip>{{ t('quickAdd.add') }}</q-tooltip>
         </q-btn>
         <q-btn
-          v-if="isOwner"
+          v-if="canEdit"
           flat
           round
           dense
@@ -36,7 +46,7 @@
           <q-tooltip>{{ t('bulkImport.title') }}</q-tooltip>
         </q-btn>
         <q-btn
-          v-if="isOwner"
+          v-if="canEdit"
           flat
           round
           dense
@@ -46,7 +56,7 @@
           <q-tooltip>{{ t('wishlist.editTitle') }}</q-tooltip>
         </q-btn>
         <q-btn
-          v-if="isOwner"
+          v-if="canEdit"
           flat
           round
           dense
@@ -57,8 +67,11 @@
           <q-tooltip>{{ showArchived ? t('item.hideArchived') : t('item.showArchived') }}</q-tooltip>
         </q-btn>
       </div>
-      <div v-if="wishlist.visibility === 'private'" class="text-caption text-negative q-mb-md">
+      <div v-if="wishlist.visibility === 'private' && !wishlist.shared_with_me" class="text-caption text-negative q-mb-md">
         {{ t('wishlist.privateShareHint') }}
+      </div>
+      <div v-if="wishlist.shared_with_me" class="text-caption text-grey q-mb-md">
+        {{ canEdit ? t('collaborators.youCanEdit') : t('collaborators.youViewOnly') }}
       </div>
       <div class="text-caption q-mb-md">{{ wishlist.description }}</div>
 
@@ -125,7 +138,7 @@
               </q-item-label>
             </q-item-section>
             <q-item-section side>
-              <template v-if="isOwner">
+              <template v-if="canEdit">
                 <q-btn
                   v-if="!item.archived"
                   size="sm"
@@ -197,7 +210,7 @@
     <ItemInfoDialog
       v-model="itemDialog.open"
       :item="itemDialog.item"
-      :is-owner="isOwner"
+      :is-owner="canEdit"
       :allow-claims="wishlist ? wishlist.allow_claims : true"
       :categories="wishlist ? wishlist.categories : []"
       @saved="onItemSaved"
@@ -228,7 +241,7 @@
         <q-card-actions align="right">
           <q-btn flat :label="t('common.close')" @click="shareOpen = false" />
           <q-btn
-            v-if="isOwner && wishlist.visibility === 'private'"
+            v-if="canManage && wishlist.visibility === 'private'"
             color="primary"
             :label="t('wishlist.changeVisibility')"
             @click="openShareThenEdit"
@@ -237,6 +250,12 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <CollaboratorsDialog
+      v-model="collaboratorsOpen"
+      :wishlist-id="wishlist ? wishlist.id : ''"
+      @changed="onCollaboratorsChanged"
+    />
   </q-page>
 </template>
 
@@ -252,6 +271,7 @@ import WishlistEditDialog from 'components/WishlistEditDialog.vue';
 import QuickAddDialog from 'components/QuickAddDialog.vue';
 import BulkImportDialog from 'components/BulkImportDialog.vue';
 import ItemInfoDialog from 'components/ItemInfoDialog.vue';
+import CollaboratorsDialog from 'components/CollaboratorsDialog.vue';
 
 const route = useRoute();
 const { t } = useI18n();
@@ -264,6 +284,7 @@ const quickAddOpen = ref(false);
 const bulkImportOpen = ref(false);
 const itemDialog = ref({ open: false, item: null });
 const shareOpen = ref(false);
+const collaboratorsOpen = ref(false);
 const showArchived = ref(false);
 const itemSortBy = ref('priority');
 const itemFilterCategory = ref(null);
@@ -298,6 +319,12 @@ const statusFilterOptions = computed(() => [
 const isOwner = computed(
   () => !!wishlist.value && wishlist.value.owner_id === auth.user?.id
 );
+const canEdit = computed(() => !!wishlist.value && wishlist.value.can_edit);
+const canManage = computed(() => isOwner.value || auth.isAdmin);
+
+function onCollaboratorsChanged() {
+  load();
+}
 
 const shareUrl = computed(() => {
   if (!wishlist.value?.slug) return '';

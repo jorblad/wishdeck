@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from app.db.base import Base  # noqa: F401
 from app.models.core import AuthProvider, SystemSetting, User, UserRole
-from app.models.wishlist import Category, ClaimStatus, Visibility, WishItem, Wishlist
+from app.models.wishlist import (
+    Category,
+    ClaimStatus,
+    Visibility,
+    WishItem,
+    Wishlist,
+    WishlistShare,
+)
 
 __all__ = [
     "Base",
@@ -15,4 +22,5 @@ __all__ = [
     "WishItem",
     "Category",
     "ClaimStatus",
+    "WishlistShare",
 ]
