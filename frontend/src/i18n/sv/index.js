@@ -84,7 +84,6 @@ export default {
     listUnarchived: 'Lista avarkiverad',
     listDeleted: 'Lista raderad',
   },
-  },
   error: {
     notFound: '404 — Sidan hittades inte',
     goHome: 'Till startsidan',
