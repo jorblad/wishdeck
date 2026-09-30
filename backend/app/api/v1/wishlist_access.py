@@ -30,22 +30,25 @@ def _share_for(wl: Wishlist, user: User) -> WishlistShare | None:
 
 
 async def assert_manage(session: AsyncSession, wl: Wishlist, user: User) -> None:
-    """Only the owner or an admin may add/remove collaborators or delete the list."""
-    if not _is_manager(wl, user):
+    """Owner, admin, or a manager-share may add/remove collaborators or delete."""
+    if _is_manager(wl, user):
+        return
+    share = _share_for(wl, user)
+    if share is None or not share.can_manage:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 async def assert_edit(session: AsyncSession, wl: Wishlist, user: User) -> None:
-    """Owner, admin, or a collaborator with can_edit may modify the list."""
+    """Owner, admin, or a collaborator with can_edit (or can_manage) may edit."""
     if _is_manager(wl, user):
         return
     share = _share_for(wl, user)
-    if share is None or not share.can_edit:
+    if share is None or (not share.can_edit and not share.can_manage):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 async def assert_read(session: AsyncSession, wl: Wishlist, user: User) -> None:
-    """Owner, admin, or any collaborator (view or edit) may read the list."""
+    """Owner, admin, or any collaborator (view, edit or manage) may read."""
     if _is_manager(wl, user):
         return
     if _share_for(wl, user) is None:

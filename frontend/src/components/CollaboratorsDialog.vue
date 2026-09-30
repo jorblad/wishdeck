@@ -22,11 +22,16 @@
               <div class="text-subtitle2">{{ s.user.full_name || s.user.email }}</div>
               <div class="text-caption text-grey">{{ s.user.email }}</div>
             </div>
-            <q-toggle
-              :model-value="s.can_edit"
-              :label="s.can_edit ? t('collaborators.canEdit') : t('collaborators.viewOnly')"
-              left-label
-              @update:model-value="(v) => setEdit(s, v)"
+            <q-select
+              :model-value="roleOf(s)"
+              :options="roleOptions"
+              dense
+              outlined
+              emit-value
+              map-options
+              style="min-width: 130px"
+              :disable="busy === s.id"
+              @update:model-value="(v) => setRole(s, v)"
             />
             <q-btn
               flat
@@ -61,10 +66,17 @@
           <template #no-option>
             <q-item><q-item-section class="text-grey">{{ t('collaborators.noUsers') }}</q-item-section></q-item>
           </template>
-          <template #after>
-            <q-toggle v-model="newCanEdit" :label="t('collaborators.canEdit')" />
-          </template>
         </q-select>
+        <q-select
+          v-model="newRole"
+          :options="roleOptions"
+          :label="t('collaborators.role')"
+          dense
+          outlined
+          emit-value
+          map-options
+          class="q-mt-sm"
+        />
         <q-btn
           class="q-mt-sm"
           color="primary"
@@ -96,9 +108,21 @@ const $q = useQuasar();
 const shares = ref([]);
 const userOptions = ref([]);
 const selected = ref(null);
-const newCanEdit = ref(true);
+const newRole = ref('editor');
 const adding = ref(false);
 const busy = ref(null);
+
+const roleOptions = [
+  { label: t('collaborators.viewer'), value: 'viewer' },
+  { label: t('collaborators.editor'), value: 'editor' },
+  { label: t('collaborators.manager'), value: 'manager' },
+];
+
+function roleOf(s) {
+  if (s.can_manage) return 'manager';
+  if (s.can_edit) return 'editor';
+  return 'viewer';
+}
 
 function initial(u) {
   const name = u.full_name || u.email || '?';
@@ -152,7 +176,8 @@ async function add() {
   try {
     await api.post(`/wishlists/${props.wishlistId}/shares`, {
       user_id: selected.value.id,
-      can_edit: newCanEdit.value,
+      can_edit: newRole.value !== 'viewer',
+      can_manage: newRole.value === 'manager',
     });
     selected.value = null;
     await loadShares();
@@ -165,13 +190,15 @@ async function add() {
   }
 }
 
-async function setEdit(share, value) {
+async function setRole(share, role) {
   busy.value = share.id;
   try {
     await api.put(`/wishlists/${props.wishlistId}/shares/${share.user_id}`, {
-      can_edit: value,
+      can_edit: role !== 'viewer',
+      can_manage: role === 'manager',
     });
-    share.can_edit = value;
+    share.can_edit = role !== 'viewer';
+    share.can_manage = role === 'manager';
     emit('changed');
   } catch (e) {
     $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });

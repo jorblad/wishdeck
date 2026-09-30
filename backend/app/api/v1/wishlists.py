@@ -121,8 +121,13 @@ async def update_wishlist(
     user: User = Depends(get_current_user),
 ) -> Wishlist:
     wl = await get_wishlist_or_404(session, wishlist_id)
-    await assert_edit(session, wl, user)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    # Archiving/unarchiving the whole list is a management action.
+    if "archived" in updates:
+        await assert_manage(session, wl, user)
+    else:
+        await assert_edit(session, wl, user)
+    for k, v in updates.items():
         setattr(wl, k, Visibility(v) if k == "visibility" else v)
     await session.flush()
     await session.refresh(wl, attribute_names=["categories", "items", "shares"])
@@ -147,14 +152,16 @@ async def delete_wishlist(
 def _apply_share_flags(wl: Wishlist, user: User) -> None:
     """Populate share-specific output fields on a loaded wishlist."""
     wl.collaborator_count = len(wl.shares)
-    # Owners and admins are always managers (can edit); they are not "shared with".
+    # Owners and admins are always managers (can edit + manage); not "shared with".
     if wl.owner_id == user.id or user.role.value == "admin":
         wl.shared_with_me = False
         wl.can_edit = True
+        wl.can_manage = True
     else:
         share = next((s for s in wl.shares if s.user_id == user.id), None)
         wl.shared_with_me = share is not None
-        wl.can_edit = bool(share and share.can_edit)
+        wl.can_edit = bool(share and (share.can_edit or share.can_manage))
+        wl.can_manage = bool(share and share.can_manage)
 
 
 # --------------------------------------------------------------------------

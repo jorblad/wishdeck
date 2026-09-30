@@ -66,12 +66,49 @@
         >
           <q-tooltip>{{ showArchived ? t('item.hideArchived') : t('item.showArchived') }}</q-tooltip>
         </q-btn>
+        <q-btn
+          v-if="canManage"
+          flat
+          round
+          dense
+          icon="more_vert"
+        >
+          <q-menu>
+            <q-list style="min-width: 180px">
+              <q-item
+                clickable
+                v-close-popup
+                @click="toggleArchive"
+              >
+                <q-item-section avatar>
+                  <q-icon :name="wishlist.archived ? 'unarchive' : 'archive'" />
+                </q-item-section>
+                <q-item-section>
+                  {{ wishlist.archived ? t('index.unarchiveList') : t('index.archiveList') }}
+                </q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                class="text-negative"
+                @click="removeWishlist"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" />
+                </q-item-section>
+                <q-item-section>{{ t('index.deleteList') }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <div v-if="wishlist.visibility === 'private' && !wishlist.shared_with_me" class="text-caption text-negative q-mb-md">
         {{ t('wishlist.privateShareHint') }}
       </div>
       <div v-if="wishlist.shared_with_me" class="text-caption text-grey q-mb-md">
-        {{ canEdit ? t('collaborators.youCanEdit') : t('collaborators.youViewOnly') }}
+        <template v-if="canManage">{{ t('collaborators.youManage') }}</template>
+        <template v-else-if="canEdit">{{ t('collaborators.youCanEdit') }}</template>
+        <template v-else>{{ t('collaborators.youViewOnly') }}</template>
       </div>
       <div class="text-caption q-mb-md">{{ wishlist.description }}</div>
 
@@ -261,7 +298,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { copyToClipboard } from 'quasar';
@@ -274,6 +311,7 @@ import ItemInfoDialog from 'components/ItemInfoDialog.vue';
 import CollaboratorsDialog from 'components/CollaboratorsDialog.vue';
 
 const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
 const $q = useQuasar();
 const auth = useAuthStore();
@@ -320,10 +358,37 @@ const isOwner = computed(
   () => !!wishlist.value && wishlist.value.owner_id === auth.user?.id
 );
 const canEdit = computed(() => !!wishlist.value && wishlist.value.can_edit);
-const canManage = computed(() => isOwner.value || auth.isAdmin);
+const canManage = computed(() => !!wishlist.value && wishlist.value.can_manage);
 
 function onCollaboratorsChanged() {
   load();
+}
+
+async function toggleArchive() {
+  try {
+    await api.put(`/wishlists/${wishlist.value.id}`, { archived: !wishlist.value.archived });
+    wishlist.value.archived = !wishlist.value.archived;
+    $q.notify({ type: 'positive', message: wishlist.value.archived ? t('index.listArchived') : t('index.listUnarchived') });
+  } catch (e) {
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+  }
+}
+
+function removeWishlist() {
+  $q.dialog({
+    title: t('index.deleteList'),
+    message: t('index.confirmDeleteList', { title: wishlist.value.title }),
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.delete(`/wishlists/${wishlist.value.id}`);
+      $q.notify({ type: 'positive', message: t('index.listDeleted') });
+      router.push('/');
+    } catch (e) {
+      $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+    }
+  });
 }
 
 const shareUrl = computed(() => {
