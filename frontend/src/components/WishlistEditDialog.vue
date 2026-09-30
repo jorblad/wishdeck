@@ -2,7 +2,7 @@
   <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <q-card style="width: 480px; max-width: 92vw">
       <q-card-section class="row items-center">
-        <div class="text-h6">{{ t('wishlist.editTitle') }}</div>
+        <div class="text-h6">{{ isCreate ? t('wishlist.newTitle') : t('wishlist.editTitle') }}</div>
         <q-space />
         <q-btn icon="close" flat round dense @click="close" />
       </q-card-section>
@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
@@ -73,21 +73,34 @@ const $q = useQuasar();
 const saving = ref(false);
 const form = reactive({ id: null, title: '', description: '', visibility: 'private', allow_claims: true });
 
+const isCreate = computed(() => !props.wishlist);
+
 const visibilityOptions = [
   { label: 'Private', value: 'private' },
   { label: 'Unlisted', value: 'unlisted' },
   { label: 'Public', value: 'public' },
 ];
 
+function resetForm() {
+  form.id = null;
+  form.title = '';
+  form.description = '';
+  form.visibility = 'private';
+  form.allow_claims = true;
+}
+
 watch(
   () => props.modelValue,
   (open) => {
-    if (open && props.wishlist) {
+    if (!open) return;
+    if (props.wishlist) {
       form.id = props.wishlist.id;
       form.title = props.wishlist.title || '';
       form.description = props.wishlist.description || '';
       form.visibility = props.wishlist.visibility || 'private';
       form.allow_claims = props.wishlist.allow_claims !== false;
+    } else {
+      resetForm();
     }
   }
 );
@@ -100,14 +113,27 @@ async function submit() {
   if (!form.title) return;
   saving.value = true;
   try {
-    const { data } = await api.put(`/wishlists/${form.id}`, {
-      title: form.title,
-      description: form.description || null,
-      visibility: form.visibility,
-      allow_claims: form.allow_claims,
-    });
+    let data;
+    if (props.wishlist && props.wishlist.id) {
+      const r = await api.put(`/wishlists/${form.id}`, {
+        title: form.title,
+        description: form.description || null,
+        visibility: form.visibility,
+        allow_claims: form.allow_claims,
+      });
+      data = r.data;
+      $q.notify({ type: 'positive', message: t('wishlist.saved') });
+    } else {
+      const r = await api.post('/wishlists', {
+        title: form.title,
+        description: form.description || null,
+        visibility: form.visibility,
+        allow_claims: form.allow_claims,
+      });
+      data = r.data;
+      $q.notify({ type: 'positive', message: t('wishlist.created') });
+    }
     emit('saved', data);
-    $q.notify({ type: 'positive', message: t('wishlist.saved') });
     close();
   } catch (e) {
     $q.notify({

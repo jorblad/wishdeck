@@ -41,6 +41,13 @@ test.describe('WishDeck public surface', () => {
     await expect(page.getByText('My Wishlists')).toBeVisible({ timeout: 10000 });
 
     await page.getByTestId('new-wishlist').click();
+
+    // "New wishlist" opens a create dialog; fill it and save to navigate to the list.
+    const titleField = page.getByLabel('Title');
+    await expect(titleField).toBeVisible({ timeout: 10000 });
+    await titleField.fill('E2E Wishlist');
+    await page.getByRole('button', { name: 'Save' }).click();
+
     await expect(page).toHaveURL(/\/wishlists\//);
   });
 });
