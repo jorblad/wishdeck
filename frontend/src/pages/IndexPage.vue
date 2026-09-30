@@ -49,9 +49,10 @@
         clickable
         v-ripple
         @click="open(wl)"
+        :class="$q.screen.lt.sm ? 'column items-start' : 'row items-center'"
       >
-        <q-item-section>
-          <q-item-label class="text-primary text-weight-medium">
+        <div class="col">
+          <div class="text-primary text-weight-medium">
             {{ wl.title }}
             <q-chip
               v-if="wl.shared_with_me"
@@ -63,53 +64,64 @@
             >
               {{ wl.can_edit ? t('collaborators.shared') : t('collaborators.sharedView') }}
             </q-chip>
-          </q-item-label>
-          <q-item-label caption>{{ wl.visibility }}</q-item-label>
-        </q-item-section>
-        <q-item-section side>
-          <q-btn
+          </div>
+          <q-chip
             dense
-            flat
-            round
-            icon="edit"
-            :disable="!wl.can_edit"
-            @click.stop="openEdit(wl)"
+            size="sm"
+            class="q-mt-xs q-px-sm"
+            :color="visibilityColor(wl.visibility)"
+            text-color="white"
+            :icon="visibilityIcon(wl.visibility)"
           >
-            <q-tooltip>{{ $t('wishlist.editTitle') }}</q-tooltip>
-          </q-btn>
-          <q-btn
-            dense
-            flat
-            round
-            icon="add_shopping_cart"
-            :disable="!wl.can_edit"
-            @click.stop="openQuickAdd(wl)"
-          >
-            <q-tooltip>{{ $t('quickAdd.add') }}</q-tooltip>
-          </q-btn>
-          <template v-if="canManage(wl)">
+            {{ t('visibility.' + wl.visibility) }}
+          </q-chip>
+        </div>
+        <div class="col-auto" :class="$q.screen.lt.sm ? 'self-stretch q-mt-sm' : 'q-ml-auto'">
+          <div class="row q-gutter-xs items-center" :class="$q.screen.lt.sm ? 'justify-start' : 'justify-end'">
             <q-btn
               dense
               flat
               round
-              :icon="wl.archived ? 'unarchive' : 'archive'"
-              :color="wl.archived ? 'warning' : ''"
-              @click.stop="toggleArchive(wl)"
+              icon="edit"
+              :disable="!wl.can_edit"
+              @click.stop="openEdit(wl)"
             >
-              <q-tooltip>{{ wl.archived ? t('index.unarchiveList') : t('index.archiveList') }}</q-tooltip>
+              <q-tooltip>{{ $t('wishlist.editTitle') }}</q-tooltip>
             </q-btn>
             <q-btn
               dense
               flat
               round
-              icon="delete"
-              color="negative"
-              @click.stop="removeWishlist(wl)"
+              icon="add_shopping_cart"
+              :disable="!wl.can_edit"
+              @click.stop="openQuickAdd(wl)"
             >
-              <q-tooltip>{{ t('index.deleteList') }}</q-tooltip>
+              <q-tooltip>{{ $t('quickAdd.add') }}</q-tooltip>
             </q-btn>
-          </template>
-        </q-item-section>
+            <template v-if="canManage(wl)">
+              <q-btn
+                dense
+                flat
+                round
+                :icon="wl.archived ? 'unarchive' : 'archive'"
+                :color="wl.archived ? 'warning' : ''"
+                @click.stop="toggleArchive(wl)"
+              >
+                <q-tooltip>{{ wl.archived ? t('index.unarchiveList') : t('index.archiveList') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                dense
+                flat
+                round
+                icon="delete"
+                color="negative"
+                @click.stop="removeWishlist(wl)"
+              >
+                <q-tooltip>{{ t('index.deleteList') }}</q-tooltip>
+              </q-btn>
+            </template>
+          </div>
+        </div>
       </q-item>
     </q-list>
 
@@ -225,6 +237,16 @@ function onCategoryCreated(cat) {
 }
 function canManage(wl) {
   return !!wl.can_manage;
+}
+function visibilityColor(visibility) {
+  if (visibility === 'public') return 'green';
+  if (visibility === 'unlisted') return 'amber';
+  return 'grey-8';
+}
+function visibilityIcon(visibility) {
+  if (visibility === 'public') return 'public';
+  if (visibility === 'unlisted') return 'link';
+  return 'lock';
 }
 async function toggleArchive(wl) {
   try {
