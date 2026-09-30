@@ -19,6 +19,12 @@ every task unless the user explicitly overrides.
   - a description with *Summary*, *What changed*, and *Test plan*,
   - any caveats (e.g. depends on another open PR, or part of the feature is
     already in `main`).
+- **Check a PR is still open before pushing to its branch.** If you want to add
+  a follow-up change, first confirm the branch's PR hasn't been merged/closed
+  (e.g. `gh pr view -H <branch> --json state`). Once a PR is merged its branch
+  is closed for new work — **create a new branch off `origin/main`** for the
+  follow-up and open a new PR. Don't keep committing/pushing to a merged branch;
+  those commits won't appear in any review and get stranded.
 - Reference the originating request/issue when relevant.
 
 ## Commits
