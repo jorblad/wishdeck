@@ -99,8 +99,12 @@ If you cannot run a check locally, say so and note it in the PR.
   a PR merged to `main` carries a `major` / `minor` / `patch` label (or by
   running the workflow manually with a bump choice).
 - The changelog is generated from the merged commits and **categorized by
-  Conventional Commits** (Features, Bug Fixes, Breaking Changes, Dependencies,
-  Other). Write commit messages accordingly so the notes are accurate.
+  Conventional Commits** into: Breaking Changes, Features, Bug Fixes,
+  Documentation, Dependencies, Other. A commit's `type` decides its section
+  (`feat`→Features, `fix`→Bug Fixes, `docs`→Documentation, `chore`/`build` dep
+  bumps→Dependencies, `BREAKING`→Breaking Changes; anything else→Other). Write
+  commit messages in the conventional format (`type(scope): subject`) so the
+  notes land in the right section.
 - Every merged PR also gets an automatic "Release Notes" comment summarizing its
   conventional commits.
 - Don't bump versions or cut releases by hand — let the workflow do it once the

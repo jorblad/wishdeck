@@ -26,8 +26,9 @@ lives in `AGENTS.md`.
 ## Releases
 - `.github/workflows/release.yml` cuts a release when a merged PR to `main` has a
   `major`/`minor`/`patch` label (or via manual dispatch). Notes are generated
-  from Conventional Commits and categorized; each merged PR also gets a release
-  notes comment. Don't bump versions by hand.
+  from Conventional Commits and categorized (Breaking Changes, Features, Bug
+  Fixes, Documentation, Dependencies, Other); each merged PR also gets a release
+  notes comment. `docs` commits go to Documentation. Don't bump versions by hand.
 
 ## Pre-commit / pre-PR checks (match CI)
 - Backend: `cd backend && pytest -q`
