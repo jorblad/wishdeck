@@ -11,6 +11,9 @@ lives in `AGENTS.md`.
 - Open PRs against `main` via `gh pr create --base main --head <branch>`.
   Include: concise title, Summary, What changed, Test plan, and caveats
   (e.g. depends on another PR, or part already in `main`).
+- Before pushing to a branch, check its PR is still open
+  (`gh pr view -H <branch> --json state`). If merged, branch off `origin/main`
+  and open a new PR; never add commits to a merged branch (they get stranded).
 - Reference the originating request/issue when relevant.
 
 ## Commits
