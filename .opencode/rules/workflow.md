@@ -28,6 +28,13 @@ lives in `AGENTS.md`.
   `backend/migrations/versions/` with correct `down_revision`.
 - Never edit a committed migration; add a new one.
 
+## Testing
+- Update existing tests when behavior changes; a change that breaks CI tests
+  without updating them is incomplete (fix the tests, don't skip them).
+- Add tests for every user-facing workflow (auth, wishlists, items, sharing,
+  roles/permissions, settings) — unit/component plus a Playwright path for
+  critical flows. Include the tests in the same PR as the feature.
+
 ## Code conventions
 - Match existing style; reuse existing libs; don't add deps without reason.
 - i18n: add keys to BOTH `en` and `sv` and keep valid JS (a stray brace breaks

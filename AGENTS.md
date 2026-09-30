@@ -43,6 +43,21 @@ Run the same checks CI runs so PRs are green:
 
 If you cannot run a check locally, say so and note it in the PR.
 
+## Testing
+
+- **Update tests when behavior changes.** If a change alters existing behavior
+  (UI flow, API contract, validation, error handling, or permissions), update
+  the affected unit, component, and/or e2e tests so they assert the *new*
+  behavior. A change that breaks CI tests without updating them is incomplete —
+  fix or update the tests, don't skip/disable them to go green.
+- **Tests for every workflow.** Every user-facing workflow must have test
+  coverage: registration, login, wishlist create/edit/delete, item add/archive,
+  sharing/collaborators, roles/permissions, and settings. Prefer unit/component
+  tests where practical, plus at least one end-to-end (Playwright) path for the
+  critical flows. **Add a workflow's tests in the same PR as the feature.**
+- Backend tests: `cd backend && pytest -q`. Frontend tests: `cd frontend &&
+  npm test`. Run them before opening a PR and resolve failures.
+
 ## Database / migrations
 
 - Model changes **must** be accompanied by a new Alembic migration under
