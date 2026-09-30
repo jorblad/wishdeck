@@ -14,9 +14,17 @@ lives in `AGENTS.md`.
 - Reference the originating request/issue when relevant.
 
 ## Commits
-- Imperative, concise subject; no trailing period.
+- Use Conventional Commits: `<type>(<scope>): <subject>` (types: feat, fix,
+  docs, style, refactor, perf, test, build, ci, chore, revert). Imperative,
+  lowercase subject, no trailing period. `feat`/`fix` drive release notes.
 - Review `git status` / `git diff`; stage only intended files. Never commit
   secrets, `.env`, or credentials. No build artifacts.
+
+## Releases
+- `.github/workflows/release.yml` cuts a release when a merged PR to `main` has a
+  `major`/`minor`/`patch` label (or via manual dispatch). Notes are generated
+  from Conventional Commits and categorized; each merged PR also gets a release
+  notes comment. Don't bump versions by hand.
 
 ## Pre-commit / pre-PR checks (match CI)
 - Backend: `cd backend && pytest -q`

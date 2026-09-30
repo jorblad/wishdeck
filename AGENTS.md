@@ -23,8 +23,14 @@ every task unless the user explicitly overrides.
 
 ## Commits
 
-- Subject: imperative, concise ("Add collaborator manager roles"), no trailing
-  period. Optional body for *why*, not *what*.
+- **Follow [Conventional Commits](https://www.conventionalcommits.org).** Format
+  is `<type>(<scope>): <subject>` (scope optional), e.g.
+  `feat(wishlists): add cancelable creation dialog`,
+  `fix(auth): reject expired tokens`, `chore(release): v1.2.2`. The subject is
+  imperative, lowercase, and has no trailing period.
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
+  `build`, `ci`, `chore`, `revert`. Use `feat` / `fix` so release notes
+  categorize correctly (see Releases).
 - **Stage only intended files.** Always review `git status` and `git diff`
   before committing. Never commit secrets, `.env`, or credentials.
 - Don't commit build artifacts or generated files (`node_modules/`, `.venv/`
@@ -80,6 +86,19 @@ If you cannot run a check locally, say so and note it in the PR.
   valid JS (a stray brace breaks the production `quasar build`).
 - Keep changes minimal; avoid unrelated refactors in the same PR.
 - Never log or commit secrets; use environment variables for config.
+
+## Releases
+
+- Releases are produced by `.github/workflows/release.yml`. A release is cut when
+  a PR merged to `main` carries a `major` / `minor` / `patch` label (or by
+  running the workflow manually with a bump choice).
+- The changelog is generated from the merged commits and **categorized by
+  Conventional Commits** (Features, Bug Fixes, Breaking Changes, Dependencies,
+  Other). Write commit messages accordingly so the notes are accurate.
+- Every merged PR also gets an automatic "Release Notes" comment summarizing its
+  conventional commits.
+- Don't bump versions or cut releases by hand — let the workflow do it once the
+  PR is labeled and merged.
 
 ## General
 
