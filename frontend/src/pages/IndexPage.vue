@@ -70,7 +70,7 @@
             size="sm"
             class="q-mt-xs q-px-sm"
             :color="visibilityColor(wl.visibility)"
-            text-color="white"
+            :text-color="visibilityTextColor(wl.visibility)"
             :icon="visibilityIcon(wl.visibility)"
           >
             {{ t('visibility.' + wl.visibility) }}
@@ -242,6 +242,11 @@ function visibilityColor(visibility) {
   if (visibility === 'public') return 'green';
   if (visibility === 'unlisted') return 'amber';
   return 'grey-8';
+}
+function visibilityTextColor(visibility) {
+  // Amber is a light background; dark text keeps the label legible.
+  // Green and grey-8 read better with white text.
+  return visibility === 'unlisted' ? 'dark' : 'white';
 }
 function visibilityIcon(visibility) {
   if (visibility === 'public') return 'public';
