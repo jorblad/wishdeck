@@ -43,9 +43,15 @@
     </div>
 
     <q-list bordered separator class="q-mt-md">
-      <q-item v-for="wl in filteredWishlists" :key="wl.id">
-        <q-item-section clickable @click="open(wl)">
-          <q-item-label>
+      <q-item
+        v-for="wl in filteredWishlists"
+        :key="wl.id"
+        clickable
+        v-ripple
+        @click="open(wl)"
+      >
+        <q-item-section>
+          <q-item-label class="text-primary text-weight-medium">
             {{ wl.title }}
             <q-chip
               v-if="wl.shared_with_me"
@@ -81,6 +87,28 @@
           >
             <q-tooltip>{{ $t('quickAdd.add') }}</q-tooltip>
           </q-btn>
+          <template v-if="canManage(wl)">
+            <q-btn
+              dense
+              flat
+              round
+              :icon="wl.archived ? 'unarchive' : 'archive'"
+              :color="wl.archived ? 'warning' : ''"
+              @click.stop="toggleArchive(wl)"
+            >
+              <q-tooltip>{{ wl.archived ? t('index.unarchiveList') : t('index.archiveList') }}</q-tooltip>
+            </q-btn>
+            <q-btn
+              dense
+              flat
+              round
+              icon="delete"
+              color="negative"
+              @click.stop="removeWishlist(wl)"
+            >
+              <q-tooltip>{{ t('index.deleteList') }}</q-tooltip>
+            </q-btn>
+          </template>
         </q-item-section>
       </q-item>
     </q-list>
@@ -188,6 +216,34 @@ function onCategoryCreated(cat) {
   if (!quickAdd.value.categories.find((c) => c.id === cat.id)) {
     quickAdd.value.categories.push(cat);
   }
+}
+function canManage(wl) {
+  return !!wl.can_manage;
+}
+async function toggleArchive(wl) {
+  try {
+    await api.put(`/wishlists/${wl.id}`, { archived: !wl.archived });
+    wl.archived = !wl.archived;
+    $q.notify({ type: 'positive', message: wl.archived ? t('index.listArchived') : t('index.listUnarchived') });
+  } catch (e) {
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+  }
+}
+function removeWishlist(wl) {
+  $q.dialog({
+    title: t('index.deleteList'),
+    message: t('index.confirmDeleteList', { title: wl.title }),
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.delete(`/wishlists/${wl.id}`);
+      wishlists.value = wishlists.value.filter((w) => w.id !== wl.id);
+      $q.notify({ type: 'positive', message: t('index.listDeleted') });
+    } catch (e) {
+      $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+    }
+  });
 }
 onMounted(load);
 </script>

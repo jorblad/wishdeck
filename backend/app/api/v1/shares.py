@@ -60,7 +60,10 @@ async def add_share(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already shared with this user")
 
     share = WishlistShare(
-        wishlist_id=wishlist_id, user_id=payload.user_id, can_edit=payload.can_edit
+        wishlist_id=wishlist_id,
+        user_id=payload.user_id,
+        can_edit=payload.can_edit,
+        can_manage=payload.can_manage,
     )
     session.add(share)
     await session.flush()
@@ -86,7 +89,10 @@ async def update_share(
     )).scalar_one_or_none()
     if not share:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share not found")
-    share.can_edit = payload.can_edit
+    if payload.can_edit is not None:
+        share.can_edit = payload.can_edit
+    if payload.can_manage is not None:
+        share.can_manage = payload.can_manage
     await session.flush()
     await session.refresh(share, attribute_names=["user"])
     return share

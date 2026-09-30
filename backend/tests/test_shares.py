@@ -142,3 +142,97 @@ async def test_share_with_unknown_user_returns_404(client):
         json={"user_id": "00000000-0000-0000-0000-000000000000", "can_edit": True},
     )
     assert r.status_code == 404, r.text
+
+
+async def test_archive_via_update_and_delete_requires_manage(client):
+    await register_and_login(client, email="owner@example.com")
+    wl = await _make_wishlist(client)
+
+    # Owner can archive the whole list via the update endpoint.
+    r = await client.put(f"/api/v1/wishlists/{wl['id']}", json={"archived": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["archived"] is True
+
+    # Archived list no longer appears in the default (non-archived) listing.
+    lst = (await client.get("/api/v1/wishlists")).json()
+    assert all(w["id"] != wl["id"] for w in lst)
+    lst_all = (await client.get("/api/v1/wishlists", params={"archived": True})).json()
+    assert any(w["id"] == wl["id"] for w in lst_all)
+
+    # A can_edit collaborator may NOT delete the whole list (manage-only).
+    await _register(client, "editor@example.com")
+    editor_id = (await client.get("/api/v1/users?q=editor")).json()[0]["id"]
+    await client.post(
+        f"/api/v1/wishlists/{wl['id']}/shares",
+        json={"user_id": editor_id, "can_edit": True},
+    )
+    await client.post("/api/v1/auth/logout")
+    await client.post("/api/v1/auth/login", json={"username": "editor@example.com", "password": "S3cret!!"})
+    assert (await client.delete(f"/api/v1/wishlists/{wl['id']}")).status_code == 403
+
+    # Owner can delete it.
+    await client.post("/api/v1/auth/logout")
+    await client.post("/api/v1/auth/login", json={"username": "owner@example.com", "password": "S3cret!!"})
+    assert (await client.delete(f"/api/v1/wishlists/{wl['id']}")).status_code == 204
+
+
+async def test_manager_share_can_manage_but_editor_cannot(client):
+    await register_and_login(client, email="owner@example.com")
+    wl = await _make_wishlist(client)
+
+    await _register(client, "manager@example.com")
+    await _register(client, "editor@example.com")
+    manager_id = (await client.get("/api/v1/users?q=manager")).json()[0]["id"]
+    editor_id = (await client.get("/api/v1/users?q=editor")).json()[0]["id"]
+
+    # Grant manager and editor roles.
+    r = await client.post(
+        f"/api/v1/wishlists/{wl['id']}/shares",
+        json={"user_id": manager_id, "can_edit": True, "can_manage": True},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["can_manage"] is True
+    await client.post(
+        f"/api/v1/wishlists/{wl['id']}/shares",
+        json={"user_id": editor_id, "can_edit": True, "can_manage": False},
+    )
+
+    # Manager may add a new collaborator and delete the list.
+    await client.post("/api/v1/auth/logout")
+    await client.post("/api/v1/auth/login", json={"username": "manager@example.com", "password": "S3cret!!"})
+    flag = (await client.get(f"/api/v1/wishlists/{wl['id']}")).json()
+    assert flag["can_manage"] is True
+    await _register(client, "extra@example.com")
+    extra_id = (await client.get("/api/v1/users?q=extra")).json()[0]["id"]
+    assert (
+        await client.post(
+            f"/api/v1/wishlists/{wl['id']}/shares",
+            json={"user_id": extra_id, "can_edit": False},
+        )
+    ).status_code == 201
+
+    # Editor may NOT manage shares, archive, or delete the list.
+    await client.post("/api/v1/auth/logout")
+    await client.post("/api/v1/auth/login", json={"username": "editor@example.com", "password": "S3cret!!"})
+    flag = (await client.get(f"/api/v1/wishlists/{wl['id']}")).json()
+    assert flag["can_manage"] is False
+    assert (
+        await client.post(
+            f"/api/v1/wishlists/{wl['id']}/shares",
+            json={"user_id": extra_id, "can_edit": False},
+        )
+    ).status_code == 403
+    assert (
+        await client.put(f"/api/v1/wishlists/{wl['id']}", json={"archived": True})
+    ).status_code == 403
+    assert (await client.delete(f"/api/v1/wishlists/{wl['id']}")).status_code == 403
+
+    # Manager may archive (and unarchive) the whole list.
+    await client.post("/api/v1/auth/logout")
+    await client.post("/api/v1/auth/login", json={"username": "manager@example.com", "password": "S3cret!!"})
+    assert (
+        await client.put(f"/api/v1/wishlists/{wl['id']}", json={"archived": True})
+    ).status_code == 200
+    assert (
+        await client.put(f"/api/v1/wishlists/{wl['id']}", json={"archived": False})
+    ).status_code == 200

@@ -169,6 +169,7 @@ class WishlistUpdate(BaseModel):
     visibility: Optional[str] = None
     allow_claims: Optional[bool] = None
     cover_image: Optional[str] = None
+    archived: Optional[bool] = None
 
 
 class WishlistOut(WishlistBase):
@@ -180,6 +181,7 @@ class WishlistOut(WishlistBase):
     items: list[WishItemOut] = []
     shared_with_me: bool = False
     can_edit: bool = False
+    can_manage: bool = False
     collaborator_count: int = 0
 
 
@@ -197,16 +199,19 @@ class WishlistShareOut(BaseModel):
     wishlist_id: str
     user_id: str
     can_edit: bool
+    can_manage: bool
     user: CollaboratorUser
 
 
 class WishlistShareCreate(BaseModel):
     user_id: str
     can_edit: bool = True
+    can_manage: bool = False
 
 
 class WishlistShareUpdate(BaseModel):
-    can_edit: bool
+    can_edit: Optional[bool] = None
+    can_manage: Optional[bool] = None
 
 
 class UserSearchOut(BaseModel):

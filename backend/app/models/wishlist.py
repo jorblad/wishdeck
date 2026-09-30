@@ -51,9 +51,12 @@ class Wishlist(Base, TimestampMixin):
 class WishlistShare(Base, TimestampMixin):
     """A user that the owner/admin has shared a wishlist with.
 
-    ``can_edit`` controls whether the collaborator may modify the list (items,
-    categories, metadata). View-only shares let someone see a private list
-    without editing it.
+    Roles:
+      * ``can_edit``  — may modify the list (items, categories, metadata).
+      * ``can_manage`` — may also manage collaborators and delete/archive the
+        whole list (in addition to editing). Owners and admins are always
+        managers; this flag only matters for shared collaborators.
+    View-only shares have both flags ``False``.
     """
 
     __tablename__ = "wishlist_shares"
@@ -67,6 +70,7 @@ class WishlistShare(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
     can_edit: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    can_manage: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     wishlist: Mapped["Wishlist"] = relationship(back_populates="shares")  # noqa: F821
     user: Mapped["User"] = relationship(lazy="selectin")  # noqa: F821
