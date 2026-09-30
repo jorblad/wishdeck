@@ -1,14 +1,14 @@
 <template>
   <q-page class="q-pa-md">
     <div class="text-h5 q-mb-md">{{ $t('index.myWishlists') }}</div>
-    <q-btn
-      v-if="auth.isAuthenticated"
-      color="primary"
-      icon="add"
-      :label="$t('menu.newWishlist')"
-      data-testid="new-wishlist"
-      @click="createWishlist"
-    />
+      <q-btn
+        v-if="auth.isAuthenticated"
+        color="primary"
+        icon="add"
+        :label="$t('menu.newWishlist')"
+        data-testid="new-wishlist"
+        @click="createOpen = true"
+      />
 
     <div class="row q-col-gutter-sm q-mt-md">
       <div class="col-12 col-sm-5">
@@ -126,6 +126,12 @@
       :wishlist="editDialog.wishlist"
       @saved="onSaved"
     />
+
+    <WishlistEditDialog
+      v-model="createOpen"
+      :wishlist="null"
+      @saved="onCreated"
+    />
   </q-page>
 </template>
 
@@ -146,6 +152,7 @@ const auth = useAuthStore();
 const wishlists = ref([]);
 const quickAdd = ref({ open: false, wishlistId: '', categories: [] });
 const editDialog = ref({ open: false, wishlist: null });
+const createOpen = ref(false);
 const sortBy = ref('newest');
 const filterVisibility = ref('all');
 const filterArchived = ref(false);
@@ -190,8 +197,7 @@ async function load() {
   const { data } = await api.get('/wishlists');
   wishlists.value = data;
 }
-async function createWishlist() {
-  const { data } = await api.post('/wishlists', { title: 'New Wishlist' });
+function onCreated(data) {
   router.push(`/wishlists/owner/${data.id}`);
 }
 function open(wl) {

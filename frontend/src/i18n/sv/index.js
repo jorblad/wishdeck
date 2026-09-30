@@ -99,10 +99,12 @@ export default {
   },
   wishlist: {
     editTitle: 'Redigera önskelista',
+    newTitle: 'Ny önskelista',
     title: 'Titel',
     description: 'Beskrivning',
     visibility: 'Synlighet',
     saved: 'Önskelista sparad',
+    created: 'Önskelista skapad',
     share: 'Dela',
     shareHint: 'Alla med denna länk kan se listan (synlighet måste vara olistsad eller offentlig).',
     copyLink: 'Kopiera länk',

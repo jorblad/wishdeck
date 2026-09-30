@@ -99,10 +99,12 @@ export default {
   },
   wishlist: {
     editTitle: 'Edit wishlist',
+    newTitle: 'New wishlist',
     title: 'Title',
     description: 'Description',
     visibility: 'Visibility',
     saved: 'Wishlist saved',
+    created: 'Wishlist created',
     share: 'Share',
     shareHint: 'Anyone with this link can view the list (visibility must be unlisted or public).',
     copyLink: 'Copy link',
