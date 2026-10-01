@@ -78,6 +78,19 @@ async def test_gift_exchange_flow(client, monkeypatch):
     assert rm.status_code == 204
 
 
+async def test_people_families_endpoint(client, monkeypatch):
+    _enable(monkeypatch)
+    await register_and_login(client)
+
+    await client.post("/api/v1/people", json={"name": "A", "family": "Smith"})
+    await client.post("/api/v1/people", json={"name": "B", "family": "Smith"})
+    await client.post("/api/v1/people", json={"name": "C", "family": "Jones"})
+    await client.post("/api/v1/people", json={"name": "D"})
+
+    families = (await client.get("/api/v1/people/families")).json()
+    assert families == ["Jones", "Smith"]
+
+
 async def test_gift_exchange_feature_flag_gate(client, monkeypatch):
     await register_and_login(client)
     r = await client.get("/api/v1/gift-exchange/groups")

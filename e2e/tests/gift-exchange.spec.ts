@@ -24,7 +24,7 @@ test.describe('Gift exchange', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     await expect(page.getByText('Family 2026')).toBeVisible();
-    await page.getByRole('button', { name: 'Open' }).click();
+    await page.getByText('Family 2026').click();
 
     // Group detail shows the member manager.
     await expect(page.getByText('Participants')).toBeVisible();
@@ -36,22 +36,34 @@ test.describe('Gift exchange', () => {
       { name: 'Bob', family: 'A' },
       { name: 'Cousin', family: 'B' },
     ];
-    for (const p of people) {
-      await addBtn.click();
-      await page.getByLabel('New person name').fill(p.name);
-      await page.getByLabel('Family').fill(p.family);
-      await page.getByRole('button', { name: 'Save' }).click();
-    }
-    for (const p of people) {
-      await expect(page.getByText(p.name)).toBeVisible();
-    }
+     for (const p of people) {
+       await addBtn.click();
+       await page.getByLabel('New person name').fill(p.name);
+       const fam = page.getByLabel('Family');
+       await fam.click();
+       await fam.pressSequentially(p.family);
+       await fam.press('Enter');
+       await page.getByRole('button', { name: 'Save' }).click();
+     }
+     for (const p of people) {
+       await expect(page.getByText(p.name)).toBeVisible();
+     }
 
-    // Run the draw and confirm.
-    await page.getByRole('button', { name: 'Run draw' }).click();
-    await page.getByRole('button', { name: 'OK' }).click();
+     // Run the draw and confirm.
+     await page.getByRole('button', { name: 'Run draw' }).click();
+     await page.getByRole('button', { name: 'OK' }).click();
 
-    // Assignments are shown (one "gives to" line per member).
-    await expect(page.getByText('Assignments')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/gives to/)).toBeVisible();
-  });
+     // Assignments are shown (one "gives to" line per member).
+     await expect(page.getByText('Assignments')).toBeVisible({ timeout: 10000 });
+     await expect(page.getByText(/gives to/)).toBeVisible();
+
+     // People directory: switch tab and add a global person.
+     await page.goto('/gift-exchange');
+     await expect(page.getByText('Gift Exchange')).toBeVisible();
+     await page.getByRole('tab', { name: 'People' }).click();
+     await page.getByRole('button', { name: 'Add person' }).click();
+     await page.getByLabel('Name').fill('Global Person');
+     await page.getByRole('button', { name: 'Save' }).click();
+     await expect(page.getByText('Global Person')).toBeVisible();
+   });
 });

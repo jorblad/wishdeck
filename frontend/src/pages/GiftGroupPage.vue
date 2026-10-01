@@ -139,27 +139,13 @@
             outlined
             class="q-mb-sm"
           />
-          <q-input
+          <FamilySelect
             v-model="personFamily"
             :label="t('giftExchange.family')"
-            dense
-            outlined
-            class="q-mb-sm"
             :hint="t('giftExchange.familyHint')"
+            class="q-mb-sm"
           />
-          <q-select
-            v-model="linkUserId"
-            :options="userOptions"
-            :label="t('giftExchange.linkUser')"
-            dense
-            outlined
-            use-input
-            emit-value
-            map-options
-            clearable
-            :input-debounce="200"
-            @filter="filterUsers"
-          />
+          <UserLinkSelect v-model="linkUserId" :label="t('giftExchange.linkUser')" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat :label="t('common.cancel')" @click="addOpen = false" />
@@ -182,25 +168,15 @@
             outlined
             class="q-mb-sm"
           />
-          <q-input
+          <FamilySelect
             v-model="personForm.family"
             :label="t('giftExchange.family')"
-            dense
-            outlined
+            :hint="t('giftExchange.familyHint')"
             class="q-mb-sm"
           />
-          <q-select
+          <UserLinkSelect
             v-model="personForm.user_id"
-            :options="userOptions"
             :label="t('giftExchange.linkUser')"
-            dense
-            outlined
-            use-input
-            emit-value
-            map-options
-            clearable
-            :input-debounce="200"
-            @filter="filterUsers"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -219,6 +195,8 @@ import { useI18n } from 'vue-i18n';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
 import { Dialog } from 'quasar';
+import FamilySelect from 'components/FamilySelect.vue';
+import UserLinkSelect from 'components/UserLinkSelect.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -243,7 +221,6 @@ const newPersonName = ref('');
 const personFamily = ref('');
 const linkUserId = ref(null);
 const peopleOptions = ref([]);
-const userOptions = ref([]);
 const editingPersonId = ref(null);
 const personForm = ref({ name: '', family: '', user_id: null });
 
@@ -274,16 +251,6 @@ async function filterPeople(val, update) {
     peopleOptions.value = data.map((p) => ({
       label: p.name + (p.family ? ` (${p.family})` : ''),
       value: p.id,
-    }));
-  });
-}
-
-async function filterUsers(val, update) {
-  const { data } = await api.get('/users', { params: { q: val || '' } });
-  update(() => {
-    userOptions.value = data.map((u) => ({
-      label: u.full_name || u.email,
-      value: u.id,
     }));
   });
 }
@@ -322,9 +289,6 @@ function openEditPerson(p) {
     family: p.family || '',
     user_id: p.user_id || null,
   };
-  userOptions.value = p.user_id
-    ? [{ label: p.name, value: p.user_id }]
-    : [];
   editOpen.value = true;
 }
 

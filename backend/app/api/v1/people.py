@@ -37,6 +37,21 @@ async def list_people(
     return (await session.execute(stmt)).scalars().all()
 
 
+@router.get("/families", response_model=list[str])
+async def list_families(
+    session: AsyncSession = Depends(get_session),
+    _user: User = Depends(get_current_user),
+) -> list[str]:
+    """Distinct, non-empty family labels, for autocompleting the family field."""
+    stmt = (
+        select(Person.family)
+        .where(Person.family.isnot(None))
+        .distinct()
+        .order_by(Person.family)
+    )
+    return [family for (family,) in (await session.execute(stmt)).all()]
+
+
 @router.post("", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
 async def create_person(
     payload: PersonCreate,

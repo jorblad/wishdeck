@@ -4,6 +4,7 @@
       <div class="text-h5">{{ t('giftExchange.title') }}</div>
       <q-space />
       <q-btn
+        v-if="tab === 'groups'"
         color="primary"
         icon="add"
         :label="t('giftExchange.createGroup')"
@@ -13,33 +14,46 @@
 
     <div class="text-subtitle2 text-grey-7 q-mb-md">{{ t('giftExchange.subtitle') }}</div>
 
-    <q-list bordered separator v-if="groups.length">
-      <q-item
-        v-for="g in groups"
-        :key="g.id"
-        clickable
-        v-ripple
-        @click="open(g.id)"
-      >
-        <q-item-section>
-          <q-item-label>{{ g.name }}</q-item-label>
-          <q-item-label caption v-if="!isOwner(g)">
-            {{ t('giftExchange.participantView') }}
-          </q-item-label>
-        </q-item-section>
-        <q-item-section side>
-          <q-item-label caption>
-            {{ g.members.length }} · {{ t('giftExchange.participants') }}
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-    </q-list>
+    <q-tabs v-model="tab" dense align="left" class="text-primary q-mb-md">
+      <q-tab name="groups" :label="t('giftExchange.groupsTab')" />
+      <q-tab name="people" :label="t('giftExchange.peopleTab')" />
+    </q-tabs>
 
-    <q-banner v-else-if="!loading" class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
-      {{ t('giftExchange.noGroups') }}
-    </q-banner>
+    <q-tab-panels v-model="tab" animated>
+      <q-tab-panel name="groups" class="q-pa-none">
+        <q-list bordered separator v-if="groups.length">
+          <q-item
+            v-for="g in groups"
+            :key="g.id"
+            clickable
+            v-ripple
+            @click="open(g.id)"
+          >
+            <q-item-section>
+              <q-item-label>{{ g.name }}</q-item-label>
+              <q-item-label caption v-if="!isOwner(g)">
+                {{ t('giftExchange.participantView') }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label caption>
+                {{ g.members.length }} · {{ t('giftExchange.participants') }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
 
-    <q-inner-loading :showing="loading" />
+        <q-banner v-else-if="!loading" class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
+          {{ t('giftExchange.noGroups') }}
+        </q-banner>
+
+        <q-inner-loading :showing="loading" />
+      </q-tab-panel>
+
+      <q-tab-panel name="people" class="q-pa-none">
+        <PeopleTab />
+      </q-tab-panel>
+    </q-tab-panels>
 
     <q-dialog v-model="createOpen">
       <q-card style="min-width: 320px">
@@ -71,11 +85,13 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
+import PeopleTab from 'components/PeopleTab.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
+const tab = ref('groups');
 const groups = ref([]);
 const loading = ref(false);
 const createOpen = ref(false);
