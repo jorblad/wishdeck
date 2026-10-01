@@ -88,6 +88,9 @@ class CreateUserRequest(BaseModel):
 
 
 class UpdateUserRequest(BaseModel):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None

@@ -297,6 +297,32 @@ async def update_user(
     user = (await session.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Profile fields. Empty strings from the UI are normalized to None so a
+    # cleared username/name is persisted as NULL rather than an empty string.
+    if payload.email is not None and payload.email != user.email:
+        conflict = (
+            await session.execute(select(User).where(User.email == payload.email))
+        ).scalar_one_or_none()
+        if conflict and conflict.id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Email already in use"
+            )
+        user.email = payload.email
+    if payload.username is not None:
+        username = payload.username or None
+        if username != user.username:
+            conflict = (
+                await session.execute(select(User).where(User.username == username))
+            ).scalar_one_or_none()
+            if conflict and conflict.id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="Username already in use"
+                )
+            user.username = username
+    if payload.full_name is not None:
+        user.full_name = payload.full_name or None
+
     if payload.role is not None:
         # Prevent an admin from demoting themselves and getting locked out.
         if user.id == admin.id and payload.role != "admin":
