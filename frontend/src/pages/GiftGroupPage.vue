@@ -79,7 +79,7 @@
       </q-list>
       <q-banner
         v-else-if="!drawError"
-        class="bg-grey-2 rounded-borders q-mt-sm"
+        class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders q-mt-sm"
       >
         {{ t('giftExchange.noAssignments') }}
       </q-banner>
@@ -92,7 +92,7 @@
     </template>
 
     <template v-else-if="group && !isOwner">
-      <q-banner class="bg-blue-1 text-blue-10 q-mb-md rounded-borders">
+      <q-banner class="bg-blue-1 text-blue-10 q-mb-md rounded-borders dark:bg-blue-10 dark:text-blue-1">
         {{ t('giftExchange.participantView') }}
       </q-banner>
       <q-card flat bordered v-if="myAssignment">
@@ -100,7 +100,7 @@
           {{ t('giftExchange.myAssignment', { name: myAssignment.receiver_name }) }}
         </q-card-section>
       </q-card>
-      <q-banner v-else class="bg-grey-2 rounded-borders">
+      <q-banner v-else class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
         {{ t('giftExchange.noAssignments') }}
       </q-banner>
     </template>

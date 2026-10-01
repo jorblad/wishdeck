@@ -35,7 +35,7 @@
       </q-item>
     </q-list>
 
-    <q-banner v-else-if="!loading" class="bg-grey-2 rounded-borders">
+    <q-banner v-else-if="!loading" class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
       {{ t('giftExchange.noGroups') }}
     </q-banner>
 
