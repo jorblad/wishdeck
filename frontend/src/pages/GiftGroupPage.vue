@@ -247,11 +247,14 @@ async function load() {
 
 async function filterPeople(val, update) {
   const { data } = await api.get('/people', { params: { q: val || '' } });
+  const taken = new Set(members.value.map((m) => m.id));
   update(() => {
-    peopleOptions.value = data.map((p) => ({
-      label: p.name + (p.family ? ` (${p.family})` : ''),
-      value: p.id,
-    }));
+    peopleOptions.value = data
+      .filter((p) => !taken.has(p.id))
+      .map((p) => ({
+        label: p.name + (p.family ? ` (${p.family})` : ''),
+        value: p.id,
+      }));
   });
 }
 
