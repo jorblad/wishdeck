@@ -10,6 +10,7 @@ from app.models.wishlist import (
     Wishlist,
     WishlistShare,
 )
+from app.models.gift_exchange import GiftGroup, Person, GiftGroupMembership, GiftDraw
 
 __all__ = [
     "Base",
@@ -23,4 +24,8 @@ __all__ = [
     "Category",
     "ClaimStatus",
     "WishlistShare",
+    "GiftGroup",
+    "Person",
+    "GiftGroupMembership",
+    "GiftDraw",
 ]

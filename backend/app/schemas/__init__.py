@@ -248,4 +248,105 @@ __all__ = [
     "WishlistShareCreate",
     "WishlistShareUpdate",
     "UserSearchOut",
+    # Gift Exchange (Secret Santa)
+    "GiftGroupCreate",
+    "GiftGroupUpdate",
+    "PersonBase",
+    "PersonCreate",
+    "PersonUpdate",
+    "PersonOut",
+    "GiftGroupAddMember",
+    "GiftGroupOut",
+    "GiftAssignmentOut",
+    "GiftDrawResult",
+    "GiftMyAssignment",
+    "GiftPairIn",
+    "GiftHistoryIn",
 ]
+
+
+# --------------------------------------------------------------------------
+# Gift Exchange (Secret Santa)
+# --------------------------------------------------------------------------
+class GiftGroupCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class GiftGroupUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class PersonBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
+
+
+class PersonCreate(PersonBase):
+    user_id: Optional[str] = None
+
+
+class PersonUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
+    # Set to null to unlink from a user.
+    user_id: Optional[str] = None
+
+
+class PersonOut(PersonBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    user_id: Optional[str] = None
+
+
+class GiftGroupAddMember(BaseModel):
+    """Add a person to a group. Reference an existing person via ``person_id``
+    or supply ``name`` (and optionally ``family``/``user_id``) to create one."""
+
+    person_id: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
+    user_id: Optional[str] = None
+
+
+class GiftGroupOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    name: str
+    owner_id: str
+    members: list[PersonOut] = []
+    my_assignment: Optional["GiftMyAssignment"] = None
+
+
+class GiftAssignmentOut(BaseModel):
+    giver_id: str
+    giver_name: str
+    receiver_id: str
+    receiver_name: str
+
+
+class GiftPairIn(BaseModel):
+    """A single historical giver -> receiver pairing for a given year."""
+
+    giver_id: str
+    receiver_id: str
+
+
+class GiftHistoryIn(BaseModel):
+    """A full set of pairings for one (usually past) year, entered manually so
+    the first in-app draw can avoid repeating them."""
+
+    year: int = Field(..., ge=2000, le=3000)
+    assignments: list[GiftPairIn]
+
+
+class GiftDrawResult(BaseModel):
+    year: int
+    assignments: list[GiftAssignmentOut]
+    unsolvable: bool = False
+    message: Optional[str] = None
+
+
+class GiftMyAssignment(BaseModel):
+    year: int
+    receiver_name: str
+

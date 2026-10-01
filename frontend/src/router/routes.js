@@ -33,6 +33,18 @@ const routes = [
         component: () => import('pages/AddFromExtensionPage.vue'),
         meta: { requiresAuth: true },
       },
+      {
+        path: 'gift-exchange',
+        name: 'gift-exchange',
+        component: () => import('pages/GiftExchangePage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: 'gift-exchange/:id',
+        name: 'gift-exchange-group',
+        component: () => import('pages/GiftGroupPage.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
   {

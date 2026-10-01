@@ -10,6 +10,53 @@
         @click="createOpen = true"
       />
 
+    <template v-if="publicSettings.featureGiftExchange">
+      <div class="text-h6 q-mt-lg">{{ t('index.giftExchange') }}</div>
+      <div class="row q-col-gutter-md q-mt-xs">
+        <div
+          v-for="g in giftGroups"
+          :key="g.id"
+          class="col-12 col-sm-6 col-md-4"
+        >
+          <q-card flat bordered class="cursor-pointer" @click="openGroup(g)">
+            <q-card-section>
+              <div class="row items-center no-wrap">
+                <div class="text-subtitle1 text-weight-medium ellipsis">{{ g.name }}</div>
+                <q-space />
+                <q-chip
+                  size="sm"
+                  :color="g.owner_id === auth.user?.id ? 'primary' : 'teal'"
+                  text-color="white"
+                >
+                  {{ g.owner_id === auth.user?.id ? t('index.owner') : t('index.participant') }}
+                </q-chip>
+              </div>
+              <div v-if="g.my_assignment" class="q-mt-sm row items-center q-gutter-xs">
+                <q-icon name="card_giftcard" color="primary" />
+                <span class="text-body1">
+                  {{ t('index.giveTo', { name: g.my_assignment.receiver_name }) }}
+                </span>
+              </div>
+              <div v-else class="q-mt-sm text-caption text-grey-7">
+                {{ t('index.noAssignment') }}
+              </div>
+              <div
+                v-if="g.owner_id === auth.user?.id && g.my_assignment"
+                class="text-caption text-grey-7 q-mt-xs"
+              >
+                {{ g.members.length }} · {{ t('giftExchange.participants') }}
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div v-if="!giftLoading && !giftGroups.length" class="col-12">
+          <q-banner class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
+            {{ t('index.noGiftGroups') }}
+          </q-banner>
+        </div>
+      </div>
+    </template>
+
     <div class="row q-col-gutter-sm q-mt-md">
       <div class="col-12 col-sm-5">
         <q-select
@@ -154,6 +201,7 @@ import { useI18n } from 'vue-i18n';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
 import { useAuthStore } from 'stores/auth';
+import { usePublicSettingsStore } from 'stores/publicSettings';
 import QuickAddDialog from 'components/QuickAddDialog.vue';
 import WishlistEditDialog from 'components/WishlistEditDialog.vue';
 
@@ -161,7 +209,10 @@ const router = useRouter();
 const { t } = useI18n();
 const $q = useQuasar();
 const auth = useAuthStore();
+const publicSettings = usePublicSettingsStore();
 const wishlists = ref([]);
+const giftGroups = ref([]);
+const giftLoading = ref(false);
 const quickAdd = ref({ open: false, wishlistId: '', categories: [] });
 const editDialog = ref({ open: false, wishlist: null });
 const createOpen = ref(false);
@@ -208,6 +259,21 @@ const filteredWishlists = computed(() => {
 async function load() {
   const { data } = await api.get('/wishlists');
   wishlists.value = data;
+}
+async function loadGiftGroups() {
+  if (!publicSettings.featureGiftExchange) return;
+  giftLoading.value = true;
+  try {
+    const { data } = await api.get('/gift-exchange/groups');
+    giftGroups.value = data || [];
+  } catch {
+    giftGroups.value = [];
+  } finally {
+    giftLoading.value = false;
+  }
+}
+function openGroup(g) {
+  router.push(`/gift-exchange/${g.id}`);
 }
 function onCreated(data) {
   router.push(`/wishlists/owner/${data.id}`);
@@ -278,5 +344,9 @@ function removeWishlist(wl) {
     }
   });
 }
-onMounted(load);
+onMounted(async () => {
+  if (!publicSettings.loaded) await publicSettings.load();
+  load();
+  loadGiftGroups();
+});
 </script>

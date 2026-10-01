@@ -5,7 +5,7 @@
 const API_PROXY_TARGET = process.env.API_PROXY_TARGET || 'http://localhost:8000';
 module.exports = function (ctx) {
   return {
-      boot: ['pinia', 'i18n', 'axios', 'dark'],
+      boot: ['pinia', 'i18n', 'axios', 'dark', 'publicSettings'],
     css: [],
     extras: ['material-icons'],
     framework: {

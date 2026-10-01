@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     ITEMS_PER_PAGE: int = 50
     DEFAULT_CURRENCY: str = "USD"  # fallback when scraping detects no currency
 
+    # --- Opt-in modules ---------------------------------------------------
+    ENABLE_GIFT_EXCHANGE: bool = False  # Secret Santa / gift-exchange module
+
     @field_validator("DATABASE_URL")
     @classmethod
     def _require_async_driver(cls, v: str) -> str:
@@ -132,6 +135,8 @@ SETTING_DEFINITIONS: list[dict[str, Any]] = [
      "label": "Items per page", "help": "Pagination page size."},
     {"key": "DEFAULT_CURRENCY", "type": "str", "group": "features", "public": True,
      "label": "Default currency", "help": "Fallback ISO currency code when none is detected while scraping (e.g. USD)."},
+    {"key": "ENABLE_GIFT_EXCHANGE", "type": "bool", "group": "features", "public": True,
+     "label": "Enable gift exchange", "help": "Opt-in Secret Santa / gift-exchange module."},
 ]
 
 # Keys that are NEVER user-editable via the UI (managed by ENV / infra only).
