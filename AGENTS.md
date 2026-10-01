@@ -90,6 +90,15 @@ If you cannot run a check locally, say so and note it in the PR.
 - **i18n:** every user-facing string needs keys in **both** `en` and `sv`
   (`frontend/src/i18n/{en,sv}/index.js`). Keep the two files in sync and
   valid JS (a stray brace breaks the production `quasar build`).
+- **Dark mode & contrast:** WishDeck supports light and dark themes, so every
+  new UI piece must stay readable in both. Quasar color utilities are
+  *fixed* (e.g. `bg-grey-2` is light even in dark mode), so pairing a fixed
+  light background with the inherited (white, in dark mode) text yields
+  invisible text. Always set an explicit text color that contrasts the
+  background, or make it theme-aware
+  (e.g. `bg-grey-2 text-dark dark:bg-grey-9 dark:text-white`). Never rely on
+  the inherited text color over a fixed background. Check both themes before
+  reporting UI work done.
 - Keep changes minimal; avoid unrelated refactors in the same PR.
 - Never log or commit secrets; use environment variables for config.
 
