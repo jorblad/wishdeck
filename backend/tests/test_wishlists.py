@@ -102,3 +102,45 @@ async def test_bulk_import_endpoint(client):
     assert data["created"] == 2
     assert [i["title"] for i in data["items"]] == ["Bonanza", "Tv-seriespelet"]
     assert all(i["category_id"] == cat["id"] for i in data["items"])
+
+
+async def test_public_directory_lists_only_public_lists(client):
+    await register_and_login(client)
+    public = await _make_wishlist(client, visibility="public")
+    unlisted = await _make_wishlist(client, visibility="unlisted")
+    private = await _make_wishlist(client, visibility="private")
+
+    # Anonymous users can browse the public directory.
+    await client.post("/api/v1/auth/logout")
+    r = await client.get("/api/v1/wishlists/public")
+    assert r.status_code == 200
+    data = r.json()
+    returned = {w["slug"] for w in data}
+    assert public["slug"] in returned
+    # Unlisted and private lists must NOT surface in the directory; they remain
+    # reachable only via their direct link.
+    assert unlisted["slug"] not in returned
+    assert private["slug"] not in returned
+
+    entry = next(w for w in data if w["slug"] == public["slug"])
+    assert entry["visibility"] == "public"
+    assert entry["item_count"] == 0
+    assert entry["owner_name"]  # owner display name is exposed for public lists
+
+
+async def test_public_directory_excludes_archived(client):
+    await register_and_login(client)
+    wl = await _make_wishlist(client, visibility="public")
+    await client.put(f"/api/v1/wishlists/{wl['id']}", json={"archived": True})
+
+    await client.post("/api/v1/auth/logout")
+    r = await client.get("/api/v1/wishlists/public")
+    assert r.status_code == 200
+    assert wl["slug"] not in {w["slug"] for w in r.json()}
+
+
+async def test_public_directory_does_not_require_auth(client):
+    # A brand-new client (no session) must be able to read the directory.
+    r = await client.get("/api/v1/wishlists/public")
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)

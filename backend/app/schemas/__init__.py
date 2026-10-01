@@ -185,6 +185,23 @@ class WishlistOut(WishlistBase):
     collaborator_count: int = 0
 
 
+class WishlistPublicSummary(BaseModel):
+    """Lightweight summary of a publicly listed wishlist for the start-page directory.
+
+    Unlike :class:`WishlistOut` it intentionally omits items, shares and the
+    owner id, and only public (never unlisted/private) lists are returned.
+    """
+
+    id: str
+    slug: str
+    title: str
+    description: Optional[str] = None
+    cover_image: Optional[str] = None
+    visibility: str
+    owner_name: Optional[str] = None
+    item_count: int = 0
+
+
 class CollaboratorUser(BaseModel):
     id: str
     email: str

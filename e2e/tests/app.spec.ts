@@ -50,4 +50,29 @@ test.describe('WishDeck public surface', () => {
 
     await expect(page).toHaveURL(/\/wishlists\//);
   });
+
+  test('public wishlist is browsable anonymously from the start page', async ({ page, browser }) => {
+    // Register (authenticated context) and create a PUBLIC wishlist via the API.
+    const email = `pub_${Date.now()}@example.com`;
+    await page.goto('/login');
+    await page.getByRole('button', { name: 'Create an account' }).click();
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill('S3cret!!');
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByText('My Wishlists')).toBeVisible({ timeout: 10000 });
+
+    const created = await page.request.post('/api/v1/wishlists', {
+      data: { title: 'Public E2E List', visibility: 'public' },
+    });
+    expect(created.ok()).toBeTruthy();
+
+    // A logged-out visitor should see public lists on the start page, but the
+    // section is absent of any auth requirement.
+    const anon = await browser.newContext();
+    const anonPage = await anon.newPage();
+    await anonPage.goto('/');
+    await expect(anonPage.getByText('Public wishlists')).toBeVisible();
+    await expect(anonPage.getByText('Public E2E List')).toBeVisible();
+    await anon.close();
+  });
 });
