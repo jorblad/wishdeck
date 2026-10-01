@@ -118,11 +118,15 @@
             outlined
             autofocus
           />
-          <q-input
+          <q-select
             v-model="partFamily"
+            :options="familyOptions"
             :label="t('giftExchange.family')"
             dense
             outlined
+            use-input
+            new-value-mode="add"
+            clearable
             class="q-mt-sm"
             :hint="t('giftExchange.familyHint')"
           />
@@ -164,6 +168,14 @@ const partOpen = ref(false);
 const editingId = ref(null);
 const partName = ref('');
 const partFamily = ref('');
+
+const familyOptions = computed(() => {
+  const seen = new Set();
+  for (const p of participants.value) {
+    if (p.family) seen.add(p.family);
+  }
+  return [...seen];
+});
 
 async function load() {
   loading.value = true;
