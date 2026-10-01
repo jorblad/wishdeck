@@ -1,4 +1,4 @@
-"""Add gift exchange (Secret Santa) tables: persons, groups, memberships, draws.
+"""Gift Exchange: groups, global people (persons), memberships, draws.
 
 Revision ID: 0006
 Revises: 0005

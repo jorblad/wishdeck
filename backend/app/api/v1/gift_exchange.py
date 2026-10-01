@@ -128,14 +128,18 @@ async def list_groups(
     ).scalars().all()
 
     owned_ids = {g.id for g in owned}
-    result: list[GiftGroupOut] = [
-        GiftGroupOut.model_validate(g, update={"members": _member_persons(g)}) for g in owned
-    ]
+    result: list[GiftGroupOut] = []
+    for g in owned:
+        out = GiftGroupOut.model_validate(g)
+        out.members = [PersonOut.model_validate(p) for p in _member_persons(g)]
+        result.append(out)
     for g in participated:
         if g.id in owned_ids:
             continue
         # Participants only see the group exists, not the member list.
-        result.append(GiftGroupOut.model_validate(g, update={"members": []}))
+        out = GiftGroupOut.model_validate(g)
+        out.members = []
+        result.append(out)
     return result
 
 
@@ -164,13 +168,16 @@ async def get_group(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
     if role == "owner":
-        return GiftGroupOut.model_validate(group, update={"members": _member_persons(group)})
+        out = GiftGroupOut.model_validate(group)
+        out.members = [PersonOut.model_validate(p) for p in _member_persons(group)]
+        return out
 
     # Participant: only reveal their own assignment, never the member list.
     my = await _my_assignment(session, group, user)
-    return GiftGroupOut.model_validate(
-        group, update={"members": [], "my_assignment": my}
-    )
+    out = GiftGroupOut.model_validate(group)
+    out.members = []
+    out.my_assignment = my
+    return out
 
 
 @router.put("/groups/{group_id}", response_model=GiftGroupOut)

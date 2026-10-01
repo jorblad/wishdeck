@@ -37,6 +37,14 @@ async def test_gift_exchange_flow(client, monkeypatch):
     )
     assert dup.status_code == 201
 
+    # Owner list + detail surfaces members (regression: model_validate(update=)).
+    groups = (await client.get("/api/v1/gift-exchange/groups")).json()
+    assert any(g["id"] == gid and len(g["members"]) == 4 for g in groups)
+    detail = (await client.get(f"/api/v1/gift-exchange/groups/{gid}")).json()
+    assert {m["id"] for m in detail["members"]} == {
+        alice["id"], bob["id"], c1["id"], c2["id"]
+    }
+
     # Run the draw.
     draw = (await client.post(f"/api/v1/gift-exchange/groups/{gid}/draw")).json()
     assert draw["unsolvable"] is False
