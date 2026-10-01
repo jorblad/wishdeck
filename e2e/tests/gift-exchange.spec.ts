@@ -58,7 +58,7 @@ test.describe('Gift exchange', () => {
 
      // Assignments are shown (one "gives to" line per member).
      await expect(page.getByText('Assignments')).toBeVisible({ timeout: 10000 });
-     await expect(page.getByText(/gives to/)).toBeVisible();
+     await expect(page.getByText(/gives to/)).toHaveCount(4);
 
     // People directory: switch tab and add a global person.
     await page.goto('/gift-exchange');
