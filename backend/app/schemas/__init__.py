@@ -251,10 +251,11 @@ __all__ = [
     # Gift Exchange (Secret Santa)
     "GiftGroupCreate",
     "GiftGroupUpdate",
-    "GiftParticipantBase",
-    "GiftParticipantCreate",
-    "GiftParticipantUpdate",
-    "GiftParticipantOut",
+    "PersonBase",
+    "PersonCreate",
+    "PersonUpdate",
+    "PersonOut",
+    "GiftGroupAddMember",
     "GiftGroupOut",
     "GiftAssignmentOut",
     "GiftDrawResult",
@@ -273,23 +274,35 @@ class GiftGroupUpdate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
 
 
-class GiftParticipantBase(BaseModel):
+class PersonBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     family: Optional[str] = Field(None, max_length=120)
 
 
-class GiftParticipantCreate(GiftParticipantBase):
-    pass
+class PersonCreate(PersonBase):
+    user_id: Optional[str] = None
 
 
-class GiftParticipantUpdate(BaseModel):
+class PersonUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     family: Optional[str] = Field(None, max_length=120)
+    # Set to null to unlink from a user.
+    user_id: Optional[str] = None
 
 
-class GiftParticipantOut(GiftParticipantBase):
+class PersonOut(PersonBase):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    user_id: Optional[str] = None
+
+
+class GiftGroupAddMember(BaseModel):
+    """Add a person to a group. Reference an existing person via ``person_id``
+    or supply ``name`` (and optionally ``family``/``user_id``) to create one."""
+
+    person_id: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
     user_id: Optional[str] = None
 
 
@@ -298,7 +311,7 @@ class GiftGroupOut(BaseModel):
     id: str
     name: str
     owner_id: str
-    participants: list[GiftParticipantOut] = []
+    members: list[PersonOut] = []
     my_assignment: Optional["GiftMyAssignment"] = None
 
 

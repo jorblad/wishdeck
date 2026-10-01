@@ -29,7 +29,7 @@
         </q-item-section>
         <q-item-section side>
           <q-item-label caption>
-            {{ g.participants.length }} · {{ t('giftExchange.participants') }}
+            {{ g.members.length }} · {{ t('giftExchange.participants') }}
           </q-item-label>
         </q-item-section>
       </q-item>

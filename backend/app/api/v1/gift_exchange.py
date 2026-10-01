@@ -1,8 +1,9 @@
 """Gift Exchange (Secret Santa) API.
 
 Endpoints are gated behind the ``ENABLE_GIFT_EXCHANGE`` feature flag and require
-authentication. The organizer (group owner) manages groups, participants and
-runs the draw; account-holding participants may only read their own assignment.
+authentication. The organizer (group owner) manages groups, members and runs the
+draw; account-holding members (a person linked to the user) may only read their
+own assignment.
 """
 from __future__ import annotations
 
@@ -18,17 +19,16 @@ from app.api.deps import get_current_user
 from app.core.config import effective_value
 from app.db.session import get_session
 from app.models.core import User
-from app.models.gift_exchange import GiftDraw, GiftGroup, GiftParticipant
+from app.models.gift_exchange import GiftDraw, GiftGroup, GiftGroupMembership, Person
 from app.schemas import (
     GiftAssignmentOut,
     GiftDrawResult,
+    GiftGroupAddMember,
     GiftGroupCreate,
     GiftGroupOut,
     GiftGroupUpdate,
     GiftMyAssignment,
-    GiftParticipantCreate,
-    GiftParticipantOut,
-    GiftParticipantUpdate,
+    PersonOut,
 )
 from app.services.gift_exchange import compute_draw
 
@@ -58,7 +58,9 @@ async def _load_group(session: AsyncSession, group_id: str) -> GiftGroup:
         await session.execute(
             select(GiftGroup)
             .where(GiftGroup.id == group_id)
-            .options(selectinload(GiftGroup.participants))
+            .options(
+                selectinload(GiftGroup.memberships).selectinload(GiftGroupMembership.person)
+            )
         )
     ).scalar_one_or_none()
     if group is None:
@@ -69,15 +71,17 @@ async def _load_group(session: AsyncSession, group_id: str) -> GiftGroup:
 async def _access_role(session: AsyncSession, group: GiftGroup, user: User) -> Optional[str]:
     if group.owner_id == user.id:
         return "owner"
-    participant = (
+    linked = (
         await session.execute(
-            select(GiftParticipant).where(
-                GiftParticipant.group_id == group.id,
-                GiftParticipant.user_id == user.id,
+            select(GiftGroupMembership)
+            .join(Person)
+            .where(
+                GiftGroupMembership.group_id == group.id,
+                Person.user_id == user.id,
             )
         )
     ).scalar_one_or_none()
-    return "participant" if participant else None
+    return "participant" if linked else None
 
 
 async def _require_owner(session: AsyncSession, group: GiftGroup, user: User) -> None:
@@ -92,6 +96,10 @@ def _current_year() -> int:
     return datetime.now(timezone.utc).year
 
 
+def _member_persons(group: GiftGroup) -> list[Person]:
+    return [m.person for m in group.memberships]
+
+
 # ---------------------------------------------------------------------------
 # Groups
 # ---------------------------------------------------------------------------
@@ -104,25 +112,30 @@ async def list_groups(
         await session.execute(
             select(GiftGroup)
             .where(GiftGroup.owner_id == user.id)
-            .options(selectinload(GiftGroup.participants))
+            .options(
+                selectinload(GiftGroup.memberships).selectinload(GiftGroupMembership.person)
+            )
         )
     ).scalars().all()
 
     participated = (
         await session.execute(
             select(GiftGroup)
-            .join(GiftParticipant)
-            .where(GiftParticipant.user_id == user.id)
+            .join(GiftGroupMembership)
+            .join(Person)
+            .where(Person.user_id == user.id)
         )
     ).scalars().all()
 
     owned_ids = {g.id for g in owned}
-    result: list[GiftGroupOut] = [GiftGroupOut.model_validate(g) for g in owned]
+    result: list[GiftGroupOut] = [
+        GiftGroupOut.model_validate(g, update={"members": _member_persons(g)}) for g in owned
+    ]
     for g in participated:
         if g.id in owned_ids:
             continue
         # Participants only see the group exists, not the member list.
-        result.append(GiftGroupOut.model_validate(g, update={"participants": []}))
+        result.append(GiftGroupOut.model_validate(g, update={"members": []}))
     return result
 
 
@@ -135,7 +148,7 @@ async def create_group(
     group = GiftGroup(name=payload.name, owner_id=user.id)
     session.add(group)
     await session.flush()
-    await session.refresh(group, attribute_names=["participants"])
+    await session.refresh(group, attribute_names=["memberships"])
     return group
 
 
@@ -151,13 +164,12 @@ async def get_group(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
     if role == "owner":
-        await session.refresh(group, attribute_names=["participants"])
-        return GiftGroupOut.model_validate(group)
+        return GiftGroupOut.model_validate(group, update={"members": _member_persons(group)})
 
     # Participant: only reveal their own assignment, never the member list.
     my = await _my_assignment(session, group, user)
     return GiftGroupOut.model_validate(
-        group, update={"participants": [], "my_assignment": my}
+        group, update={"members": [], "my_assignment": my}
     )
 
 
@@ -172,7 +184,7 @@ async def update_group(
     await _require_owner(session, group, user)
     group.name = payload.name
     await session.flush()
-    await session.refresh(group)
+    await session.refresh(group, attribute_names=["memberships"])
     return group
 
 
@@ -190,82 +202,73 @@ async def delete_group(
 
 
 # ---------------------------------------------------------------------------
-# Participants
+# Members (global people linked into a group)
 # ---------------------------------------------------------------------------
-@router.post(
-    "/groups/{group_id}/participants",
-    response_model=GiftParticipantOut,
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_participant(
+@router.post("/groups/{group_id}/members", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
+async def add_member(
     group_id: str,
-    payload: GiftParticipantCreate,
+    payload: GiftGroupAddMember,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> GiftParticipant:
+) -> Person:
     group = await _load_group(session, group_id)
     await _require_owner(session, group, user)
-    participant = GiftParticipant(
-        group_id=group.id, name=payload.name, family=payload.family
-    )
-    session.add(participant)
-    await session.flush()
-    await session.refresh(participant)
-    return participant
 
+    person: Optional[Person] = None
+    if payload.person_id:
+        person = await session.get(Person, payload.person_id)
+        if person is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Person not found"
+            )
+    elif payload.name:
+        person = Person(name=payload.name, family=payload.family, user_id=payload.user_id)
+        session.add(person)
+        await session.flush()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide person_id or name",
+        )
 
-@router.put(
-    "/groups/{group_id}/participants/{participant_id}",
-    response_model=GiftParticipantOut,
-)
-async def update_participant(
-    group_id: str,
-    participant_id: str,
-    payload: GiftParticipantUpdate,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
-) -> GiftParticipant:
-    group = await _load_group(session, group_id)
-    await _require_owner(session, group, user)
-    participant = (
+    existing = (
         await session.execute(
-            select(GiftParticipant).where(
-                GiftParticipant.id == participant_id,
-                GiftParticipant.group_id == group.id,
+            select(GiftGroupMembership).where(
+                GiftGroupMembership.group_id == group.id,
+                GiftGroupMembership.person_id == person.id,
             )
         )
     ).scalar_one_or_none()
-    if participant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
-    if payload.name is not None:
-        participant.name = payload.name
-    if payload.family is not None:
-        participant.family = payload.family
-    await session.flush()
-    await session.refresh(participant)
-    return participant
+    if existing is None:
+        session.add(GiftGroupMembership(group_id=group.id, person_id=person.id))
+        await session.flush()
+
+    await session.refresh(person)
+    return person
 
 
-@router.delete("/groups/{group_id}/participants/{participant_id}")
-async def remove_participant(
+@router.delete("/groups/{group_id}/members/{person_id}")
+async def remove_member(
     group_id: str,
-    participant_id: str,
+    person_id: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Response:
     group = await _load_group(session, group_id)
     await _require_owner(session, group, user)
-    participant = (
+    membership = (
         await session.execute(
-            select(GiftParticipant).where(
-                GiftParticipant.id == participant_id,
-                GiftParticipant.group_id == group.id,
+            select(GiftGroupMembership).where(
+                GiftGroupMembership.group_id == group.id,
+                GiftGroupMembership.person_id == person_id,
             )
         )
     ).scalar_one_or_none()
-    if participant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
-    await session.delete(participant)
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
+        )
+    await session.delete(membership)
     await session.flush()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -282,24 +285,20 @@ async def run_draw(
     group = await _load_group(session, group_id)
     await _require_owner(session, group, user)
 
-    participants = (
-        await session.execute(
-            select(GiftParticipant).where(GiftParticipant.group_id == group.id)
-        )
-    ).scalars().all()
-    if len(participants) < 2:
+    persons = _member_persons(group)
+    if len(persons) < 2:
         return GiftDrawResult(
             year=_current_year(),
             assignments=[],
             unsolvable=True,
-            message="Need at least two participants to draw.",
+            message="Need at least two members to draw.",
         )
 
     year = _current_year()
     previous = await _previous_year_pairs(session, group.id, year)
 
     mapping = compute_draw(
-        [{"id": p.id, "family": p.family} for p in participants],
+        [{"id": p.id, "family": p.family} for p in persons],
         previous_pairs=previous,
     )
     if mapping is None:
@@ -309,7 +308,7 @@ async def run_draw(
             unsolvable=True,
             message=(
                 "No valid assignment exists with the current family and history "
-                "constraints. Try relaxing a family, or add more participants."
+                "constraints. Try relaxing a family, or add more members."
             ),
         )
 
@@ -325,7 +324,7 @@ async def run_draw(
         await session.delete(row)
     await session.flush()
 
-    names = {p.id: p.name for p in participants}
+    names = {p.id: p.name for p in persons}
     assignments = [
         GiftAssignmentOut(
             giver_id=giver,
@@ -371,9 +370,7 @@ async def get_assignments(
     names = {
         p.id: p.name
         for p in (
-            await session.execute(
-                select(GiftParticipant).where(GiftParticipant.id.in_(ids))
-            )
+            await session.execute(select(Person).where(Person.id.in_(ids)))
         ).scalars().all()
     }
     return [
@@ -388,7 +385,7 @@ async def get_assignments(
 
 
 @router.get("/groups/{group_id}/assignment/me", response_model=GiftMyAssignment)
-async def my_assignment(
+async def my_assignment_endpoint(
     group_id: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
@@ -435,15 +432,17 @@ async def _previous_year_pairs(
 async def _my_assignment(
     session: AsyncSession, group: GiftGroup, user: User
 ) -> Optional[GiftMyAssignment]:
-    participant = (
+    membership = (
         await session.execute(
-            select(GiftParticipant).where(
-                GiftParticipant.group_id == group.id,
-                GiftParticipant.user_id == user.id,
+            select(GiftGroupMembership)
+            .join(Person)
+            .where(
+                GiftGroupMembership.group_id == group.id,
+                Person.user_id == user.id,
             )
         )
     ).scalar_one_or_none()
-    if participant is None:
+    if membership is None:
         return None
     year = _current_year()
     draw = (
@@ -451,7 +450,7 @@ async def _my_assignment(
             select(GiftDraw).where(
                 GiftDraw.group_id == group.id,
                 GiftDraw.year == year,
-                GiftDraw.giver_id == participant.id,
+                GiftDraw.giver_id == membership.person_id,
             )
         )
     ).scalar_one_or_none()
@@ -459,7 +458,7 @@ async def _my_assignment(
         return None
     receiver = (
         await session.execute(
-            select(GiftParticipant).where(GiftParticipant.id == draw.receiver_id)
+            select(Person).where(Person.id == draw.receiver_id)
         )
     ).scalar_one_or_none()
     return GiftMyAssignment(

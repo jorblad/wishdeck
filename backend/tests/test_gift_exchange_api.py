@@ -13,46 +13,61 @@ async def test_gift_exchange_flow(client, monkeypatch):
     _enable(monkeypatch)
     await register_and_login(client)
 
-    # Group + participants: two siblings (family A) and two cousins (family B).
-    group = await client.post("/api/v1/gift-exchange/groups", json={"name": "Family"})
-    assert group.status_code == 201, group.text
-    gid = group.json()["id"]
+    me = (await client.get("/api/v1/auth/me")).json()
 
-    a = (await client.post(
-        f"/api/v1/gift-exchange/groups/{gid}/participants",
-        json={"name": "Alice", "family": "A"},
-    )).json()
-    b = (await client.post(
-        f"/api/v1/gift-exchange/groups/{gid}/participants",
-        json={"name": "Bob", "family": "A"},
-    )).json()
-    c = (await client.post(
-        f"/api/v1/gift-exchange/groups/{gid}/participants",
-        json={"name": "Cousin1", "family": "B"},
-    )).json()
-    d = (await client.post(
-        f"/api/v1/gift-exchange/groups/{gid}/participants",
-        json={"name": "Cousin2", "family": "B"},
-    )).json()
+    # Create group + global people: two siblings (family A) and two cousins (B).
+    group = (await client.post("/api/v1/gift-exchange/groups", json={"name": "Family"})).json()
+    gid = group["id"]
 
-    draw = await client.post(f"/api/v1/gift-exchange/groups/{gid}/draw")
-    assert draw.status_code == 200, draw.text
-    data = draw.json()
-    assert data["unsolvable"] is False
-    assert data["year"] == datetime.now(timezone.utc).year
-    assigns = {x["giver_id"]: x["receiver_id"] for x in data["assignments"]}
-    assert set(assigns) == {a["id"], b["id"], c["id"], d["id"]}
+    alice = (await client.post("/api/v1/people", json={"name": "Alice", "family": "A"})).json()
+    bob = (await client.post("/api/v1/people", json={"name": "Bob", "family": "A"})).json()
+    c1 = (await client.post("/api/v1/people", json={"name": "Cousin1", "family": "B"})).json()
+    c2 = (await client.post("/api/v1/people", json={"name": "Cousin2", "family": "B"})).json()
+    names = {p["id"]: p["name"] for p in (alice, bob, c1, c2)}
 
-    fam = {a["id"]: "A", b["id"]: "A", c["id"]: "B", d["id"]: "B"}
+    for pid in (alice["id"], bob["id"], c1["id"], c2["id"]):
+        r = await client.post(
+            f"/api/v1/gift-exchange/groups/{gid}/members", json={"person_id": pid}
+        )
+        assert r.status_code == 201, r.text
+
+    # Same person cannot be added twice.
+    dup = await client.post(
+        f"/api/v1/gift-exchange/groups/{gid}/members", json={"person_id": alice["id"]}
+    )
+    assert dup.status_code == 201
+
+    # Run the draw.
+    draw = (await client.post(f"/api/v1/gift-exchange/groups/{gid}/draw")).json()
+    assert draw["unsolvable"] is False
+    assert draw["year"] == datetime.now(timezone.utc).year
+    assigns = {a["giver_id"]: a["receiver_id"] for a in draw["assignments"]}
+    assert set(assigns) == {alice["id"], bob["id"], c1["id"], c2["id"]}
+
+    # No intra-family pairing (siblings A never paired with A, cousins B with B).
+    fam = {alice["id"]: "A", bob["id"]: "A", c1["id"]: "B", c2["id"]: "B"}
     for giver, receiver in assigns.items():
         assert fam[giver] != fam[receiver]
-
-    fetched = (await client.get(f"/api/v1/gift-exchange/groups/{gid}/assignments")).json()
-    assert len(fetched) == 4
 
     # A second draw for the same year replaces the previous one.
     draw2 = (await client.post(f"/api/v1/gift-exchange/groups/{gid}/draw")).json()
     assert len(draw2["assignments"]) == 4
+
+    # Assignments are persisted and retrievable.
+    fetched = (await client.get(f"/api/v1/gift-exchange/groups/{gid}/assignments")).json()
+    assert len(fetched) == 4
+
+    # A linked member can read their own assignment (against the current draw).
+    await client.put(f"/api/v1/people/{alice['id']}", json={"user_id": me["id"]})
+    current = {a["giver_id"]: a["receiver_id"] for a in draw2["assignments"]}
+    my = (await client.get(f"/api/v1/gift-exchange/groups/{gid}/assignment/me")).json()
+    assert my["receiver_name"] == names[current[alice["id"]]]
+
+    # Removing a member works.
+    rm = await client.delete(
+        f"/api/v1/gift-exchange/groups/{gid}/members/{bob['id']}"
+    )
+    assert rm.status_code == 204
 
 
 async def test_gift_exchange_feature_flag_gate(client, monkeypatch):
@@ -60,6 +75,9 @@ async def test_gift_exchange_feature_flag_gate(client, monkeypatch):
     r = await client.get("/api/v1/gift-exchange/groups")
     assert r.status_code == 403
 
+    r2 = await client.get("/api/v1/people")
+    assert r2.status_code == 403
+
     _enable(monkeypatch)
-    r2 = await client.get("/api/v1/gift-exchange/groups")
-    assert r2.status_code == 200
+    assert (await client.get("/api/v1/gift-exchange/groups")).status_code == 200
+    assert (await client.get("/api/v1/people")).status_code == 200

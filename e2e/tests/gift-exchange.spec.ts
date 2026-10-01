@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Gift exchange', () => {
-  test('register, create group, add participants, run draw', async ({ page }) => {
+  test('register, create group, add members, run draw', async ({ page }) => {
     const email = `ge_${Date.now()}@example.com`;
 
     // Register + auto-login (same flow as the core e2e path).
@@ -26,11 +26,11 @@ test.describe('Gift exchange', () => {
     await expect(page.getByText('Family 2026')).toBeVisible();
     await page.getByRole('button', { name: 'Open' }).click();
 
-    // Group detail shows the participant manager.
+    // Group detail shows the member manager.
     await expect(page.getByText('Participants')).toBeVisible();
 
-    // Add three participants across two families (siblings A + cousin B).
-    const addBtn = page.getByRole('button', { name: 'Add participant' });
+    // Add three people across two families (siblings A + cousin B).
+    const addBtn = page.getByRole('button', { name: 'Add member' });
     const people = [
       { name: 'Alice', family: 'A' },
       { name: 'Bob', family: 'A' },
@@ -38,7 +38,7 @@ test.describe('Gift exchange', () => {
     ];
     for (const p of people) {
       await addBtn.click();
-      await page.getByLabel('Name').fill(p.name);
+      await page.getByLabel('New person name').fill(p.name);
       await page.getByLabel('Family').fill(p.family);
       await page.getByRole('button', { name: 'Save' }).click();
     }
@@ -50,7 +50,7 @@ test.describe('Gift exchange', () => {
     await page.getByRole('button', { name: 'Run draw' }).click();
     await page.getByRole('button', { name: 'OK' }).click();
 
-    // Assignments are shown (one "gives to" line per participant).
+    // Assignments are shown (one "gives to" line per member).
     await expect(page.getByText('Assignments')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/gives to/)).toBeVisible();
   });

@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.api.v1 import auth, settings, shares, users, utils, wishlists
 from app.api.v1 import gift_exchange
+from app.api.v1 import people
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal
 
@@ -17,6 +18,7 @@ api_router.include_router(shares.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(gift_exchange.router)
+api_router.include_router(people.router)
 
 
 @api_router.get("/", tags=["meta"])
