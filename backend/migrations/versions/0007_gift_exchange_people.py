@@ -27,12 +27,9 @@ def upgrade() -> None:
     # Guard: only migrate if the old per-group participants table still exists.
     # On a fresh install (0006 already creates persons) or a database that was
     # already migrated, gift_participants is absent and there is nothing to do.
-    has_old = bind.execute(
-        sa.text(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='gift_participants'"
-        )
-    ).fetchone()
-    if not has_old:
+    # Use the SQLAlchemy inspector so the check is database-agnostic (works on
+    # both SQLite and PostgreSQL — sqlite_master does not exist on Postgres).
+    if not sa.inspect(bind).has_table("gift_participants"):
         return
 
     op.create_table(
