@@ -14,7 +14,7 @@ test.describe('Gift exchange', () => {
 
     // The module is enabled in the e2e stack.
     await page.goto('/gift-exchange');
-    await expect(page.getByText('Gift Exchange')).toBeVisible();
+    await expect(page.locator('.text-h5', { hasText: 'Gift Exchange' })).toBeVisible();
 
     // Create a group.
     await page.getByRole('button', { name: 'New group' }).click();
@@ -57,10 +57,10 @@ test.describe('Gift exchange', () => {
      await expect(page.getByText('Assignments')).toBeVisible({ timeout: 10000 });
      await expect(page.getByText(/gives to/)).toBeVisible();
 
-     // People directory: switch tab and add a global person.
-     await page.goto('/gift-exchange');
-     await expect(page.getByText('Gift Exchange')).toBeVisible();
-     await page.getByRole('tab', { name: 'People' }).click();
+    // People directory: switch tab and add a global person.
+    await page.goto('/gift-exchange');
+    await expect(page.locator('.text-h5', { hasText: 'Gift Exchange' })).toBeVisible();
+    await page.locator('.q-tab', { hasText: 'People' }).click();
      await page.getByRole('button', { name: 'Add person' }).click();
      await page.getByLabel('Name').fill('Global Person');
      await page.getByRole('button', { name: 'Save' }).click();
