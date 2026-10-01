@@ -89,6 +89,7 @@ export default {
     owner: 'Ägare',
     participant: 'Deltagare',
     noGiftGroups: 'Inga presentutbyten ännu.',
+    noAssignment: 'Ingen tilldelning ännu — öppna för att genomföra eller visa lottningen.',
     openGroup: 'Öppna',
   },
   error: {

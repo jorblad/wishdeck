@@ -133,6 +133,8 @@ async def list_groups(
     for g in owned:
         out = GiftGroupOut.model_validate(g)
         out.members = [PersonOut.model_validate(p) for p in _member_persons(g)]
+        # Owners who are also participants see their own assignment on the card.
+        out.my_assignment = await _my_assignment(session, g, user)
         result.append(out)
     for g in participated:
         if g.id in owned_ids:

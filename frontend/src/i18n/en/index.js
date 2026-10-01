@@ -89,6 +89,7 @@ export default {
     owner: 'Owner',
     participant: 'Participant',
     noGiftGroups: 'No gift exchanges yet.',
+    noAssignment: 'No assignment yet — open to run or view the draw.',
     openGroup: 'Open',
   },
   error: {

@@ -31,14 +31,20 @@
                   {{ g.owner_id === auth.user?.id ? t('index.owner') : t('index.participant') }}
                 </q-chip>
               </div>
+              <div v-if="g.my_assignment" class="q-mt-sm row items-center q-gutter-xs">
+                <q-icon name="card_giftcard" color="primary" />
+                <span class="text-body1">
+                  {{ t('index.giveTo', { name: g.my_assignment.receiver_name }) }}
+                </span>
+              </div>
+              <div v-else class="q-mt-sm text-caption text-grey-7">
+                {{ t('index.noAssignment') }}
+              </div>
               <div
-                v-if="g.owner_id === auth.user?.id"
+                v-if="g.owner_id === auth.user?.id && g.my_assignment"
                 class="text-caption text-grey-7 q-mt-xs"
               >
                 {{ g.members.length }} · {{ t('giftExchange.participants') }}
-              </div>
-              <div v-if="g.my_assignment" class="q-mt-sm text-body2">
-                {{ t('index.giveTo', { name: g.my_assignment.receiver_name }) }}
               </div>
             </q-card-section>
           </q-card>
