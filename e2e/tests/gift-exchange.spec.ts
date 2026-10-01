@@ -65,5 +65,9 @@ test.describe('Gift exchange', () => {
      await page.getByLabel('Name').fill('Global Person');
      await page.getByRole('button', { name: 'Save' }).click();
      await expect(page.getByText('Global Person')).toBeVisible();
+
+     // The group also shows up as a card on the start page.
+     await page.goto('/');
+     await expect(page.getByText('Family 2026')).toBeVisible();
    });
 });

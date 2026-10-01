@@ -260,6 +260,8 @@ __all__ = [
     "GiftAssignmentOut",
     "GiftDrawResult",
     "GiftMyAssignment",
+    "GiftPairIn",
+    "GiftHistoryIn",
 ]
 
 
@@ -320,6 +322,21 @@ class GiftAssignmentOut(BaseModel):
     giver_name: str
     receiver_id: str
     receiver_name: str
+
+
+class GiftPairIn(BaseModel):
+    """A single historical giver -> receiver pairing for a given year."""
+
+    giver_id: str
+    receiver_id: str
+
+
+class GiftHistoryIn(BaseModel):
+    """A full set of pairings for one (usually past) year, entered manually so
+    the first in-app draw can avoid repeating them."""
+
+    year: int = Field(..., ge=2000, le=3000)
+    assignments: list[GiftPairIn]
 
 
 class GiftDrawResult(BaseModel):

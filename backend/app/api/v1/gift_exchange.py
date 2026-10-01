@@ -27,6 +27,7 @@ from app.schemas import (
     GiftGroupCreate,
     GiftGroupOut,
     GiftGroupUpdate,
+    GiftHistoryIn,
     GiftMyAssignment,
     PersonOut,
 )
@@ -136,9 +137,10 @@ async def list_groups(
     for g in participated:
         if g.id in owned_ids:
             continue
-        # Participants only see the group exists, not the member list.
+        # Participants only see the group exists, never the member list.
         out = GiftGroupOut.model_validate(g)
         out.members = []
+        out.my_assignment = await _my_assignment(session, g, user)
         result.append(out)
     return result
 
@@ -302,7 +304,7 @@ async def run_draw(
         )
 
     year = _current_year()
-    previous = await _previous_year_pairs(session, group.id, year)
+    previous = await _historical_pairs(session, group.id, year)
 
     mapping = compute_draw(
         [{"id": p.id, "family": p.family} for p in persons],
@@ -391,6 +393,115 @@ async def get_assignments(
     ]
 
 
+@router.post(
+    "/groups/{group_id}/assignments",
+    response_model=list[GiftAssignmentOut],
+    status_code=status.HTTP_201_CREATED,
+)
+async def set_assignments(
+    group_id: str,
+    payload: GiftHistoryIn,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> list[GiftAssignmentOut]:
+    """Set the full set of pairings for a (usually past) year.
+
+    Use this to record previous years' gifts so the first in-app draw avoids
+    repeating them. Replaces any draws already stored for that year.
+    """
+    group = await _load_group(session, group_id)
+    await _require_owner(session, group, user)
+
+    member_ids = set(
+        (
+            await session.execute(
+                select(GiftGroupMembership.person_id).where(
+                    GiftGroupMembership.group_id == group.id
+                )
+            )
+        ).scalars().all()
+    )
+    if not member_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group has no members.")
+
+    seen_givers = set()
+    for pair in payload.assignments:
+        if pair.giver_id not in member_ids or pair.receiver_id not in member_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Pairing references a non-member.",
+            )
+        if pair.giver_id == pair.receiver_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="A person cannot give to themselves.",
+            )
+        if pair.giver_id in seen_givers:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Duplicate giver in history.",
+            )
+        seen_givers.add(pair.giver_id)
+
+    existing = (
+        await session.execute(
+            select(GiftDraw).where(
+                GiftDraw.group_id == group.id, GiftDraw.year == payload.year
+            )
+        )
+    ).scalars().all()
+    for row in existing:
+        await session.delete(row)
+    await session.flush()
+
+    names = {
+        p.id: p.name
+        for p in (
+            await session.execute(select(Person).where(Person.id.in_(member_ids)))
+        ).scalars().all()
+    }
+    out: list[GiftAssignmentOut] = []
+    for pair in payload.assignments:
+        session.add(
+            GiftDraw(
+                group_id=group.id,
+                year=payload.year,
+                giver_id=pair.giver_id,
+                receiver_id=pair.receiver_id,
+            )
+        )
+        out.append(
+            GiftAssignmentOut(
+                giver_id=pair.giver_id,
+                giver_name=names.get(pair.giver_id, "?"),
+                receiver_id=pair.receiver_id,
+                receiver_name=names.get(pair.receiver_id, "?"),
+            )
+        )
+    await session.flush()
+    return out
+
+
+@router.get("/groups/{group_id}/history", response_model=list[int])
+async def list_history_years(
+    group_id: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> list[int]:
+    """Distinct years that have recorded draws (past or current), newest first."""
+    group = await _load_group(session, group_id)
+    await _require_owner(session, group, user)
+    rows = (
+        await session.execute(
+            select(GiftDraw.year)
+            .where(GiftDraw.group_id == group.id)
+            .distinct()
+            .order_by(GiftDraw.year.desc())
+        )
+    ).scalars().all()
+    return list(rows)
+
+
 @router.get("/groups/{group_id}/assignment/me", response_model=GiftMyAssignment)
 async def my_assignment_endpoint(
     group_id: str,
@@ -413,23 +524,18 @@ async def my_assignment_endpoint(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-async def _previous_year_pairs(
+async def _historical_pairs(
     session: AsyncSession, group_id: str, year: int
 ) -> list[tuple[str, str]]:
-    prior_year = (
-        await session.execute(
-            select(GiftDraw.year)
-            .where(GiftDraw.group_id == group_id, GiftDraw.year < year)
-            .order_by(GiftDraw.year.desc())
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-    if prior_year is None:
-        return []
+    """All recorded giver/receiver pairs from years before ``year``.
+
+    Manually-entered history (see ``set_assignments``) and prior in-app draws are
+    both avoided so the first in-app draw can respect previous years' gifts.
+    """
     rows = (
         await session.execute(
             select(GiftDraw.giver_id, GiftDraw.receiver_id).where(
-                GiftDraw.group_id == group_id, GiftDraw.year == prior_year
+                GiftDraw.group_id == group_id, GiftDraw.year < year
             )
         )
     ).all()

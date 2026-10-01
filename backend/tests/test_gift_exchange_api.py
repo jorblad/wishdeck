@@ -91,6 +91,70 @@ async def test_people_families_endpoint(client, monkeypatch):
     assert families == ["Jones", "Smith"]
 
 
+async def test_history_avoids_previous_pairs(client, monkeypatch):
+    _enable(monkeypatch)
+    await register_and_login(client)
+
+    group = (await client.post("/api/v1/gift-exchange/groups", json={"name": "G"})).json()
+    gid = group["id"]
+    a = (await client.post("/api/v1/people", json={"name": "A"})).json()
+    b = (await client.post("/api/v1/people", json={"name": "B"})).json()
+    c = (await client.post("/api/v1/people", json={"name": "C"})).json()
+    for pid in (a["id"], b["id"], c["id"]):
+        await client.post(
+            f"/api/v1/gift-exchange/groups/{gid}/members", json={"person_id": pid}
+        )
+
+    prev_year = datetime.now(timezone.utc).year - 1
+    hist = await client.post(
+        f"/api/v1/gift-exchange/groups/{gid}/assignments",
+        json={
+            "year": prev_year,
+            "assignments": [
+                {"giver_id": a["id"], "receiver_id": b["id"]},
+                {"giver_id": b["id"], "receiver_id": c["id"]},
+                {"giver_id": c["id"], "receiver_id": a["id"]},
+            ],
+        },
+    )
+    assert hist.status_code == 201, hist.text
+    assert (await client.get(f"/api/v1/gift-exchange/groups/{gid}/history")).json() == [
+        prev_year
+    ]
+
+    draw = (await client.post(f"/api/v1/gift-exchange/groups/{gid}/draw")).json()
+    assert draw["unsolvable"] is False
+    pairs = {(x["giver_id"], x["receiver_id"]) for x in draw["assignments"]}
+    assert (a["id"], b["id"]) not in pairs
+    assert (b["id"], c["id"]) not in pairs
+    assert (c["id"], a["id"]) not in pairs
+
+    # Re-posting the same year replaces, not duplicates.
+    hist2 = await client.post(
+        f"/api/v1/gift-exchange/groups/{gid}/assignments",
+        json={
+            "year": prev_year,
+            "assignments": [
+                {"giver_id": a["id"], "receiver_id": b["id"]},
+                {"giver_id": b["id"], "receiver_id": c["id"]},
+                {"giver_id": c["id"], "receiver_id": a["id"]},
+            ],
+        },
+    )
+    assert hist2.status_code == 201
+    assert len(hist2.json()) == 3
+
+    # Non-member pairing is rejected.
+    bad = await client.post(
+        f"/api/v1/gift-exchange/groups/{gid}/assignments",
+        json={
+            "year": prev_year,
+            "assignments": [{"giver_id": a["id"], "receiver_id": "does-not-exist"}],
+        },
+    )
+    assert bad.status_code == 422
+
+
 async def test_gift_exchange_feature_flag_gate(client, monkeypatch):
     await register_and_login(client)
     r = await client.get("/api/v1/gift-exchange/groups")

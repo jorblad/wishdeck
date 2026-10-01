@@ -92,6 +92,30 @@
       >
         {{ drawError }}
       </q-banner>
+
+      <div class="text-subtitle1 q-mt-lg">{{ t('giftExchange.history') }}</div>
+      <div v-if="historyYears.length" class="q-gutter-xs">
+        <q-chip
+          v-for="y in historyYears"
+          :key="y"
+          clickable
+          color="primary"
+          text-color="white"
+          @click="openHistory(y)"
+        >
+          {{ y }}
+        </q-chip>
+      </div>
+      <div v-else class="text-caption text-grey-7 q-mb-xs">
+        {{ t('giftExchange.noHistory') }}
+      </div>
+      <q-btn
+        flat
+        color="primary"
+        icon="add"
+        :label="t('giftExchange.addHistory')"
+        @click="openHistory()"
+      />
     </template>
 
     <template v-else-if="group && !isOwner">
@@ -185,6 +209,48 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Previous-year gifts dialog -->
+    <q-dialog v-model="historyOpen">
+      <q-card style="min-width: 360px">
+        <q-card-section>
+          <div class="text-h6">{{ t('giftExchange.editHistory') }}</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model.number="historyYear"
+            :label="t('giftExchange.year')"
+            type="number"
+            dense
+            outlined
+            class="q-mb-md"
+          />
+          <div
+            v-for="row in historyRows"
+            :key="row.giver_id"
+            class="row items-center q-mb-xs"
+          >
+            <div class="col-5">{{ row.giver_name }}</div>
+            <div class="col">
+              <q-select
+                v-model="row.receiver_id"
+                :options="receiverOptions(row.giver_id)"
+                :label="t('giftExchange.givesToReceiver')"
+                dense
+                outlined
+                emit-value
+                map-options
+                clearable
+              />
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat :label="t('common.cancel')" @click="historyOpen = false" />
+          <q-btn color="primary" :label="t('common.save')" @click="saveHistory" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -209,6 +275,11 @@ const members = ref([]);
 const assignments = ref([]);
 const myAssignment = ref(null);
 const drawError = ref('');
+
+const historyOpen = ref(false);
+const historyYear = ref(new Date().getFullYear() - 1);
+const historyRows = ref([]);
+const historyYears = ref([]);
 
 const isOwner = computed(
   () => group.value && group.value.owner_id === auth.user?.id,
@@ -236,6 +307,7 @@ async function load() {
         `/gift-exchange/groups/${route.params.id}/assignments`,
       );
       assignments.value = a || [];
+      await loadHistoryYears();
     } else {
       members.value = [];
       myAssignment.value = data.my_assignment || null;
@@ -243,6 +315,66 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+
+async function loadHistoryYears() {
+  try {
+    const { data } = await api.get(
+      `/gift-exchange/groups/${route.params.id}/history`,
+    );
+    historyYears.value = data || [];
+  } catch {
+    historyYears.value = [];
+  }
+}
+
+function receiverOptions(giverId) {
+  return (members.value || [])
+    .filter((m) => m.id !== giverId)
+    .map((m) => ({
+      label: m.name + (m.family ? ` (${m.family})` : ''),
+      value: m.id,
+    }));
+}
+
+function openHistory(year) {
+  historyYear.value = year || new Date().getFullYear() - 1;
+  historyRows.value = (members.value || []).map((m) => ({
+    giver_id: m.id,
+    giver_name: m.name,
+    receiver_id: null,
+  }));
+  historyOpen.value = true;
+  if (year) {
+    api
+      .get(`/gift-exchange/groups/${route.params.id}/assignments`, {
+        params: { year },
+      })
+      .then(({ data }) => {
+        const byGiver = {};
+        for (const a of data || []) byGiver[a.giver_id] = a.receiver_id;
+        historyRows.value = historyRows.value.map((r) => ({
+          ...r,
+          receiver_id: byGiver[r.giver_id] || null,
+        }));
+      });
+  }
+}
+
+async function saveHistory() {
+  const assignments = historyRows.value
+    .filter((r) => r.receiver_id)
+    .map((r) => ({ giver_id: r.giver_id, receiver_id: r.receiver_id }));
+  if (!assignments.length) {
+    historyOpen.value = false;
+    return;
+  }
+  await api.post(`/gift-exchange/groups/${route.params.id}/assignments`, {
+    year: historyYear.value,
+    assignments,
+  });
+  historyOpen.value = false;
+  await loadHistoryYears();
 }
 
 async function filterPeople(val, update) {
