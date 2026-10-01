@@ -2,6 +2,11 @@
 # @quasar/app-vite v3 requires Node >= 22.22
 # ---- Build stage ----
 FROM node:24-alpine AS build
+# Quasar picks the package manager from the installed binaries when no lockfile
+# exists (we install with --no-package-lock). Force npm: yarn v1 mis-resolves
+# rollup's libc-specific native binaries on Alpine (musl) and aborts the PWA
+# build, whereas npm correctly skips libc-incompatible optional dependencies.
+RUN rm -f "$(command -v yarn 2>/dev/null)" "$(command -v yarnpkg 2>/dev/null)" 2>/dev/null; corepack disable 2>/dev/null || true
 WORKDIR /app
 COPY package.json ./
 RUN npm install -g @quasar/cli && npm install --legacy-peer-deps --no-package-lock
@@ -10,6 +15,7 @@ RUN quasar build -m pwa
 
 # ---- Dev stage (keeps Node + quasar CLI for hot reload) ----
 FROM node:24-alpine AS dev
+RUN rm -f "$(command -v yarn 2>/dev/null)" "$(command -v yarnpkg 2>/dev/null)" 2>/dev/null; corepack disable 2>/dev/null || true
 WORKDIR /app
 COPY package.json ./
 RUN npm install -g @quasar/cli && npm install --legacy-peer-deps --no-package-lock

@@ -229,7 +229,15 @@ onMounted(load);
 
 <style scoped>
 .env-locked :deep(.q-field__control) {
-  background: #f0f0f0;
-  color: #9e9e9e;
+  background: #eceff1;
+}
+.env-locked :deep(.q-field__native) {
+  color: #455a64;
+}
+.body--dark .env-locked :deep(.q-field__control) {
+  background: #2a2a2a;
+}
+.body--dark .env-locked :deep(.q-field__native) {
+  color: #cfd8dc;
 }
 </style>
