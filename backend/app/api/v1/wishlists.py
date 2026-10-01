@@ -5,7 +5,7 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -39,6 +39,7 @@ from app.schemas import (
     WishlistBase,
     WishlistCreate,
     WishlistOut,
+    WishlistPublicSummary,
     WishlistUpdate,
 )
 
@@ -95,6 +96,47 @@ async def create_wishlist(
     await session.refresh(wl, attribute_names=["categories", "items", "shares"])
     _apply_share_flags(wl, user)
     return wl
+
+
+# --------------------------------------------------------------------------
+# Public directory (no auth): only PUBLIC lists are listed. Unlisted lists stay
+# reachable solely via their direct link (handled by /public/{slug}).
+# Registered before /{wishlist_id} so the static segment wins.
+# --------------------------------------------------------------------------
+@router.get("/public", response_model=list[WishlistPublicSummary])
+async def list_public_wishlists(
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+) -> list[WishlistPublicSummary]:
+    item_count = (
+        select(func.count(WishItem.id))
+        .where(WishItem.wishlist_id == Wishlist.id, WishItem.archived == False)  # noqa: E712
+        .correlate(Wishlist)
+        .scalar_subquery()
+    )
+    rows = (await session.execute(
+        select(Wishlist, item_count)
+        .options(selectinload(Wishlist.owner))
+        .where(
+            Wishlist.visibility == Visibility.PUBLIC,
+            Wishlist.archived == False,  # noqa: E712
+        )
+        .order_by(Wishlist.created_at.desc())
+        .limit(limit)
+    )).all()
+    return [
+        WishlistPublicSummary(
+            id=wl.id,
+            slug=wl.slug,
+            title=wl.title,
+            description=wl.description,
+            cover_image=wl.cover_image,
+            visibility=wl.visibility.value,
+            owner_name=(wl.owner.full_name or wl.owner.email) if wl.owner else None,
+            item_count=count or 0,
+        )
+        for wl, count in rows
+    ]
 
 
 @router.get("/{wishlist_id}", response_model=WishlistOut)

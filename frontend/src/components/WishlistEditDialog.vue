@@ -75,11 +75,11 @@ const form = reactive({ id: null, title: '', description: '', visibility: 'priva
 
 const isCreate = computed(() => !props.wishlist);
 
-const visibilityOptions = [
-  { label: 'Private', value: 'private' },
-  { label: 'Unlisted', value: 'unlisted' },
-  { label: 'Public', value: 'public' },
-];
+const visibilityOptions = computed(() => [
+  { label: t('visibility.private'), value: 'private' },
+  { label: t('visibility.unlisted'), value: 'unlisted' },
+  { label: t('visibility.public'), value: 'public' },
+]);
 
 function resetForm() {
   form.id = null;

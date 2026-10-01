@@ -1,5 +1,22 @@
 <template>
   <q-page class="q-pa-md">
+
+    <!-- Anonymous welcome: public lists are browsable without an account. -->
+    <q-banner
+      v-if="authReady && !auth.isAuthenticated"
+      class="bg-primary text-white rounded-borders q-mb-lg"
+    >
+      <template #avatar><q-icon name="celebration" /></template>
+      <div class="text-h6">{{ t('index.welcomeTitle') }}</div>
+      <div class="q-mt-xs">{{ t('index.welcomeText') }}</div>
+      <div class="q-mt-sm row q-gutter-sm">
+        <q-btn color="white" text-color="primary" :label="t('auth.signIn')" @click="router.push('/login')" />
+        <q-btn outline color="white" :label="t('auth.createAnAccount')" @click="router.push('/login')" />
+      </div>
+    </q-banner>
+
+    <!-- My Wishlists (authenticated only) -->
+    <template v-if="authReady && auth.isAuthenticated">
     <div class="text-h5 q-mb-md">{{ $t('index.myWishlists') }}</div>
       <q-btn
         v-if="auth.isAuthenticated"
@@ -171,6 +188,45 @@
         </div>
       </q-item>
     </q-list>
+    </template>
+
+    <!-- Public wishlists: visible to everyone (including logged-out visitors). -->
+    <div class="text-h5 q-mt-lg">{{ t('index.publicWishlists') }}</div>
+    <div class="text-subtitle2 text-grey-7 q-mb-sm">{{ t('index.browsePublic') }}</div>
+    <div class="row q-col-gutter-md">
+      <div
+        v-for="p in publicWishlists"
+        :key="p.id"
+        class="col-12 col-sm-6 col-md-4"
+      >
+        <q-card flat bordered class="cursor-pointer" @click="router.push(`/wishlists/${p.slug}`)">
+          <q-img
+            v-if="p.cover_image"
+            :src="p.cover_image"
+            ratio="16/9"
+            spinner-color="primary"
+          >
+            <div class="absolute-bottom text-subtitle2 text-weight-medium">
+              {{ p.title }}
+            </div>
+          </q-img>
+          <q-card-section>
+            <div class="text-subtitle1 text-weight-medium ellipsis">{{ p.title }}</div>
+            <div class="text-caption text-grey-7 q-mt-xs">
+              {{ t('index.byOwner', { name: p.owner_name || t('index.unknownOwner') }) }}
+            </div>
+            <div class="text-caption text-grey-7">
+              {{ t('index.itemsCount', { count: p.item_count }) }}
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+      <div v-if="!publicLoading && !publicWishlists.length" class="col-12">
+        <q-banner class="bg-grey-2 text-dark dark:bg-grey-9 dark:text-white rounded-borders">
+          {{ t('index.noPublicWishlists') }}
+        </q-banner>
+      </div>
+    </div>
 
     <QuickAddDialog
       v-model="quickAdd.open"
@@ -213,6 +269,11 @@ const publicSettings = usePublicSettingsStore();
 const wishlists = ref([]);
 const giftGroups = ref([]);
 const giftLoading = ref(false);
+const publicWishlists = ref([]);
+// Start in the loading state so the empty-state banner ("No public wishlists
+// yet.") cannot flash on first paint before loadPublic() resolves.
+const publicLoading = ref(true);
+const authReady = ref(false);
 const quickAdd = ref({ open: false, wishlistId: '', categories: [] });
 const editDialog = ref({ open: false, wishlist: null });
 const createOpen = ref(false);
@@ -270,6 +331,17 @@ async function loadGiftGroups() {
     giftGroups.value = [];
   } finally {
     giftLoading.value = false;
+  }
+}
+async function loadPublic() {
+  publicLoading.value = true;
+  try {
+    const { data } = await api.get('/wishlists/public');
+    publicWishlists.value = data || [];
+  } catch {
+    publicWishlists.value = [];
+  } finally {
+    publicLoading.value = false;
   }
 }
 function openGroup(g) {
@@ -346,7 +418,14 @@ function removeWishlist(wl) {
 }
 onMounted(async () => {
   if (!publicSettings.loaded) await publicSettings.load();
-  load();
-  loadGiftGroups();
+  // Determine auth state (also covers a full page reload at "/").
+  await auth.fetchMe();
+  authReady.value = true;
+  // Public lists are browsable by everyone, including logged-out visitors.
+  loadPublic();
+  if (auth.isAuthenticated) {
+    load();
+    loadGiftGroups();
+  }
 });
 </script>
