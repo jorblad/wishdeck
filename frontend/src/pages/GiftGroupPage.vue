@@ -71,11 +71,23 @@
       <div class="text-subtitle1 q-mt-lg" v-if="assignments.length">
         {{ t('giftExchange.assignments') }}
       </div>
-      <q-list bordered separator v-if="assignments.length">
+       <q-list bordered separator v-if="assignments.length">
         <q-item v-for="a in assignments" :key="a.giver_id">
           <q-item-section>
             <q-item-label>
               {{ t('giftExchange.givesTo', { giver: a.giver_name, receiver: a.receiver_name }) }}
+            </q-item-label>
+            <q-item-label caption v-if="a.receiver_wishlist_slug">
+              <q-btn
+                flat
+                dense
+                no-caps
+                icon="open_in_new"
+                color="primary"
+                :label="t('giftExchange.viewWishlist')"
+                :to="`/wishlists/${a.receiver_wishlist_slug}`"
+                class="q-px-xs"
+              />
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -125,6 +137,17 @@
       <q-card flat bordered v-if="myAssignment">
         <q-card-section>
           {{ t('giftExchange.myAssignment', { name: myAssignment.receiver_name }) }}
+          <div v-if="myAssignment.receiver_wishlist_slug" class="q-mt-sm">
+            <q-btn
+              flat
+              dense
+              no-caps
+              icon="open_in_new"
+              color="primary"
+              :label="t('giftExchange.viewWishlist')"
+              :to="`/wishlists/${myAssignment.receiver_wishlist_slug}`"
+            />
+          </div>
         </q-card-section>
       </q-card>
       <q-banner
@@ -202,6 +225,20 @@
             v-model="personForm.user_id"
             :label="t('giftExchange.linkUser')"
           />
+          <q-select
+            v-model="selectedWishlistId"
+            :options="wishlistOptions"
+            :label="t('giftExchange.linkedWishlist')"
+            dense
+            outlined
+            emit-value
+            map-options
+            clearable
+            class="q-mt-sm"
+          />
+          <div class="text-caption text-grey-7 q-mt-xs">
+            {{ t('giftExchange.linkedWishlistHint') }}
+          </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat :label="t('common.cancel')" @click="editOpen = false" />
@@ -294,6 +331,22 @@ const linkUserId = ref(null);
 const peopleOptions = ref([]);
 const editingPersonId = ref(null);
 const personForm = ref({ name: '', family: '', user_id: null });
+const wishlists = ref([]);
+const selectedWishlistId = ref(null);
+
+const wishlistOptions = computed(() => [
+  { label: t('wishlist.personNone'), value: null },
+  ...wishlists.value.map((w) => ({ label: w.title, value: w.id })),
+]);
+
+async function loadWishlists() {
+  try {
+    const { data } = await api.get('/wishlists');
+    wishlists.value = Array.isArray(data) ? data : [];
+  } catch {
+    wishlists.value = [];
+  }
+}
 
 async function load() {
   loading.value = true;
@@ -424,6 +477,10 @@ function openEditPerson(p) {
     family: p.family || '',
     user_id: p.user_id || null,
   };
+  loadWishlists().then(() => {
+    const linked = wishlists.value.find((w) => w.person_id === p.id);
+    selectedWishlistId.value = linked ? linked.id : null;
+  });
   editOpen.value = true;
 }
 
@@ -433,6 +490,15 @@ async function savePerson() {
     family: personForm.value.family || null,
     user_id: personForm.value.user_id || null,
   });
+  // Sync the linked wishlist for this person (one wishlist per person).
+  const newId = selectedWishlistId.value || null;
+  const currentLinked = wishlists.value.find((w) => w.person_id === editingPersonId.value);
+  const currentId = currentLinked ? currentLinked.id : null;
+  if (newId && newId !== currentId) {
+    await api.put(`/wishlists/${newId}`, { person_id: editingPersonId.value });
+  } else if (!newId && currentId) {
+    await api.put(`/wishlists/${currentId}`, { person_id: null });
+  }
   editOpen.value = false;
   await load();
 }

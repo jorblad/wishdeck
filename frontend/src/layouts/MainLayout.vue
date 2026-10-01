@@ -17,6 +17,7 @@
           <q-tooltip>{{ $t('theme.toggle') }}</q-tooltip>
         </q-btn>
         <q-btn v-if="auth.isAuthenticated && auth.isAdmin" flat :label="$t('menu.users')" to="/users" />
+        <q-btn v-if="auth.isAuthenticated" flat :label="$t('menu.profile')" to="/profile" />
         <q-btn
           v-if="auth.isAuthenticated && publicSettings.featureGiftExchange"
           flat

@@ -169,6 +169,15 @@ async def update_wishlist(
         await assert_manage(session, wl, user)
     else:
         await assert_edit(session, wl, user)
+    # Linking this wishlist to a person must not leave another wishlist linked
+    # to the same person (person_id is unique).
+    if updates.get("person_id") is not None:
+        await session.execute(
+            Wishlist.__table__.update()
+            .where(Wishlist.person_id == updates["person_id"])
+            .where(Wishlist.id != wl.id)
+            .values(person_id=None)
+        )
     for k, v in updates.items():
         setattr(wl, k, Visibility(v) if k == "visibility" else v)
     await session.flush()

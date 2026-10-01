@@ -33,6 +33,11 @@ class Wishlist(Base, TimestampMixin):
     archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     allow_claims: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     cover_image: Mapped[str | None] = mapped_column(String(512))
+    # Optional link to a global Person (Gift Exchange). Lets a draw's "who gives
+    # what" list link straight to the receiver's wishlist. One wishlist per person.
+    person_id: Mapped[str | None] = mapped_column(
+        ForeignKey("persons.id", ondelete="SET NULL"), index=True, nullable=True, unique=True
+    )
 
     owner: Mapped["User"] = relationship(back_populates="wishlists")  # noqa: F821
     items: Mapped[list["WishItem"]] = relationship(

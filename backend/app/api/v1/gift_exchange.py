@@ -20,6 +20,7 @@ from app.core.config import effective_value
 from app.db.session import get_session
 from app.models.core import User
 from app.models.gift_exchange import GiftDraw, GiftGroup, GiftGroupMembership, Person
+from app.models.wishlist import Wishlist
 from app.schemas import (
     GiftAssignmentOut,
     GiftDrawResult,
@@ -99,6 +100,22 @@ def _current_year() -> int:
 
 def _member_persons(group: GiftGroup) -> list[Person]:
     return [m.person for m in group.memberships]
+
+
+async def _wishlist_slugs_by_person(
+    session: AsyncSession, person_ids: set[str]
+) -> dict[str, str]:
+    """Map person_id -> wishlist slug for persons that have a linked wishlist."""
+    if not person_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(Wishlist.slug, Wishlist.person_id).where(
+                Wishlist.person_id.in_(person_ids)
+            )
+        )
+    ).all()
+    return {pid: slug for slug, pid in rows}
 
 
 # ---------------------------------------------------------------------------
@@ -336,12 +353,15 @@ async def run_draw(
     await session.flush()
 
     names = {p.id: p.name for p in persons}
+    receiver_ids = set(mapping.values())
+    slug_by_person = await _wishlist_slugs_by_person(session, receiver_ids)
     assignments = [
         GiftAssignmentOut(
             giver_id=giver,
             giver_name=names[giver],
             receiver_id=receiver,
             receiver_name=names[receiver],
+            receiver_wishlist_slug=slug_by_person.get(receiver),
         )
         for giver, receiver in mapping.items()
     ]
@@ -384,12 +404,14 @@ async def get_assignments(
             await session.execute(select(Person).where(Person.id.in_(ids)))
         ).scalars().all()
     }
+    slug_by_person = await _wishlist_slugs_by_person(session, ids)
     return [
         GiftAssignmentOut(
             giver_id=r.giver_id,
             giver_name=names.get(r.giver_id, "?"),
             receiver_id=r.receiver_id,
             receiver_name=names.get(r.receiver_id, "?"),
+            receiver_wishlist_slug=slug_by_person.get(r.receiver_id),
         )
         for r in rows
     ]
@@ -462,6 +484,7 @@ async def set_assignments(
             await session.execute(select(Person).where(Person.id.in_(member_ids)))
         ).scalars().all()
     }
+    slug_by_person = await _wishlist_slugs_by_person(session, member_ids)
     out: list[GiftAssignmentOut] = []
     for pair in payload.assignments:
         session.add(
@@ -478,6 +501,7 @@ async def set_assignments(
                 giver_name=names.get(pair.giver_id, "?"),
                 receiver_id=pair.receiver_id,
                 receiver_name=names.get(pair.receiver_id, "?"),
+                receiver_wishlist_slug=slug_by_person.get(pair.receiver_id),
             )
         )
     await session.flush()
@@ -576,8 +600,16 @@ async def _my_assignment(
             select(Person).where(Person.id == draw.receiver_id)
         )
     ).scalar_one_or_none()
+    slug = None
+    if receiver:
+        slug_row = (
+            await session.execute(
+                select(Wishlist.slug).where(Wishlist.person_id == receiver.id)
+            )
+        ).scalar_one_or_none()
+        slug = slug_row
     return GiftMyAssignment(
-        year=year, receiver_name=receiver.name if receiver else "?"
+        year=year, receiver_name=receiver.name if receiver else "?", receiver_wishlist_slug=slug
     )
 
 
