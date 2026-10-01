@@ -87,6 +87,12 @@ class CreateUserRequest(BaseModel):
     role: str = "user"  # user | admin
 
 
+class UpdateSelfRequest(BaseModel):
+    """Self-service profile update for the logged-in user (display name only)."""
+
+    full_name: Optional[str] = Field(None, max_length=255)
+
+
 class UpdateUserRequest(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
@@ -170,6 +176,8 @@ class WishlistUpdate(BaseModel):
     allow_claims: Optional[bool] = None
     cover_image: Optional[str] = None
     archived: Optional[bool] = None
+    # Link this wishlist to a global Person (Gift Exchange). Pass null to unlink.
+    person_id: Optional[str] = None
 
 
 class WishlistOut(WishlistBase):
@@ -177,6 +185,7 @@ class WishlistOut(WishlistBase):
     slug: str
     owner_id: str
     archived: bool
+    person_id: Optional[str] = None
     categories: list[CategoryOut] = []
     items: list[WishItemOut] = []
     shared_with_me: bool = False
@@ -339,6 +348,10 @@ class GiftAssignmentOut(BaseModel):
     giver_name: str
     receiver_id: str
     receiver_name: str
+    # Slug of the receiver's linked wishlist, if they have one. Lets the UI link
+    # straight from "who gives what" to that wishlist (access still depends on the
+    # wishlist's visibility).
+    receiver_wishlist_slug: Optional[str] = None
 
 
 class GiftPairIn(BaseModel):
@@ -366,4 +379,5 @@ class GiftDrawResult(BaseModel):
 class GiftMyAssignment(BaseModel):
     year: int
     receiver_name: str
+    receiver_wishlist_slug: Optional[str] = None
 

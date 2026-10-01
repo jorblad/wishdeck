@@ -24,6 +24,7 @@ from app.schemas import (
     OIDCLoginRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateSelfRequest,
     UpdateUserRequest,
     UserOut,
 )
@@ -110,6 +111,19 @@ async def logout(response: Response) -> Response:
 
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@router.put("/me", response_model=UserOut)
+async def update_me(
+    payload: UpdateSelfRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Let the logged-in user edit their own display name."""
+    if payload.full_name is not None:
+        user.full_name = payload.full_name or None
+    await session.flush()
     return user
 
 

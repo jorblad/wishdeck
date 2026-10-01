@@ -166,3 +166,78 @@ async def test_gift_exchange_feature_flag_gate(client, monkeypatch):
     _enable(monkeypatch)
     assert (await client.get("/api/v1/gift-exchange/groups")).status_code == 200
     assert (await client.get("/api/v1/people")).status_code == 200
+
+
+async def test_wishlist_person_link_and_uniqueness(client, monkeypatch):
+    _enable(monkeypatch)
+    await register_and_login(client)
+
+    person = (await client.post("/api/v1/people", json={"name": "Eve"})).json()
+    pid = person["id"]
+
+    wl1 = (await client.post("/api/v1/wishlists", json={"title": "W1"})).json()
+    wl2 = (await client.post("/api/v1/wishlists", json={"title": "W2"})).json()
+
+    # Link wl1 to the person.
+    r = await client.put(f"/api/v1/wishlists/{wl1['id']}", json={"person_id": pid})
+    assert r.status_code == 200, r.text
+    assert r.json()["person_id"] == pid
+
+    # Linking a second wishlist to the same person must unlink the first.
+    r2 = await client.put(f"/api/v1/wishlists/{wl2['id']}", json={"person_id": pid})
+    assert r2.status_code == 200
+    assert r2.json()["person_id"] == pid
+
+    reloaded = (await client.get(f"/api/v1/wishlists/{wl1['id']}")).json()
+    assert reloaded["person_id"] is None
+
+    # Unlinking via null works.
+    r3 = await client.put(f"/api/v1/wishlists/{wl2['id']}", json={"person_id": None})
+    assert r3.status_code == 200
+    assert r3.json()["person_id"] is None
+
+
+async def test_assignment_includes_receiver_wishlist_slug(client, monkeypatch):
+    _enable(monkeypatch)
+    await register_and_login(client)
+
+    me = (await client.get("/api/v1/auth/me")).json()
+    group = (await client.post("/api/v1/gift-exchange/groups", json={"name": "G"})).json()
+    gid = group["id"]
+
+    giver = (await client.post("/api/v1/people", json={"name": "Giver"})).json()
+    receiver = (await client.post("/api/v1/people", json={"name": "Receiver"})).json()
+    for pid in (giver["id"], receiver["id"]):
+        await client.post(
+            f"/api/v1/gift-exchange/groups/{gid}/members", json={"person_id": pid}
+        )
+
+    # Receiver gets a linked wishlist.
+    wl = (await client.post("/api/v1/wishlists", json={"title": "Receiver gifts"})).json()
+    link = await client.put(
+        f"/api/v1/wishlists/{wl['id']}", json={"person_id": receiver["id"]}
+    )
+    assert link.status_code == 200
+
+    # Manually set the draw so we know the pairing.
+    set_r = await client.post(
+        f"/api/v1/gift-exchange/groups/{gid}/assignments",
+        json={
+            "year": datetime.now(timezone.utc).year,
+            "assignments": [
+                {"giver_id": giver["id"], "receiver_id": receiver["id"]}
+            ],
+        },
+    )
+    assert set_r.status_code == 201, set_r.text
+    assigns = set_r.json()
+    assert assigns[0]["receiver_wishlist_slug"] == wl["slug"]
+
+    fetched = (await client.get(f"/api/v1/gift-exchange/groups/{gid}/assignments")).json()
+    assert fetched[0]["receiver_wishlist_slug"] == wl["slug"]
+
+    # The linked member sees the slug in their own assignment too.
+    await client.put(f"/api/v1/people/{giver['id']}", json={"user_id": me["id"]})
+    mine = (await client.get(f"/api/v1/gift-exchange/groups/{gid}/assignment/me")).json()
+    assert mine["receiver_wishlist_slug"] == wl["slug"]
+

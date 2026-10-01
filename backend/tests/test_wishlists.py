@@ -144,3 +144,16 @@ async def test_public_directory_does_not_require_auth(client):
     r = await client.get("/api/v1/wishlists/public")
     assert r.status_code == 200
     assert isinstance(r.json(), list)
+
+
+async def test_update_own_profile(client):
+    await register_and_login(client)
+    before = (await client.get("/api/v1/auth/me")).json()
+    assert before["full_name"] == "Owner"
+
+    r = await client.put("/api/v1/auth/me", json={"full_name": "Renamed Me"})
+    assert r.status_code == 200, r.text
+    assert r.json()["full_name"] == "Renamed Me"
+
+    me = (await client.get("/api/v1/auth/me")).json()
+    assert me["full_name"] == "Renamed Me"
