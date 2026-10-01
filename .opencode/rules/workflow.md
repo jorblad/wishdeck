@@ -50,5 +50,11 @@ lives in `AGENTS.md`.
 - Match existing style; reuse existing libs; don't add deps without reason.
 - i18n: add keys to BOTH `en` and `sv` and keep valid JS (a stray brace breaks
   `quasar build`).
+- Dark mode & contrast: WishDeck has light + dark themes. Quasar color
+  utilities are *fixed* (e.g. `bg-grey-2` stays light in dark mode), so a
+  fixed light background with the inherited (white, in dark mode) text is
+  invisible. Always set an explicit contrasting text color or use
+  `dark:` variants (e.g. `bg-grey-2 text-dark dark:bg-grey-9 dark:text-white`).
+  Check both themes before reporting UI done.
 - Keep changes minimal; avoid unrelated refactors.
 - Never log/commit secrets; use env vars.
