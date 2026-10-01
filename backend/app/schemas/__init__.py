@@ -248,4 +248,75 @@ __all__ = [
     "WishlistShareCreate",
     "WishlistShareUpdate",
     "UserSearchOut",
+    # Gift Exchange (Secret Santa)
+    "GiftGroupCreate",
+    "GiftGroupUpdate",
+    "GiftParticipantBase",
+    "GiftParticipantCreate",
+    "GiftParticipantUpdate",
+    "GiftParticipantOut",
+    "GiftGroupOut",
+    "GiftAssignmentOut",
+    "GiftDrawResult",
+    "GiftMyAssignment",
 ]
+
+
+# --------------------------------------------------------------------------
+# Gift Exchange (Secret Santa)
+# --------------------------------------------------------------------------
+class GiftGroupCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class GiftGroupUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class GiftParticipantBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
+
+
+class GiftParticipantCreate(GiftParticipantBase):
+    pass
+
+
+class GiftParticipantUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    family: Optional[str] = Field(None, max_length=120)
+
+
+class GiftParticipantOut(GiftParticipantBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    user_id: Optional[str] = None
+
+
+class GiftGroupOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    name: str
+    owner_id: str
+    participants: list[GiftParticipantOut] = []
+    my_assignment: Optional["GiftMyAssignment"] = None
+
+
+class GiftAssignmentOut(BaseModel):
+    giver_id: str
+    giver_name: str
+    receiver_id: str
+    receiver_name: str
+
+
+class GiftDrawResult(BaseModel):
+    year: int
+    assignments: list[GiftAssignmentOut]
+    unsolvable: bool = False
+    message: Optional[str] = None
+
+
+class GiftMyAssignment(BaseModel):
+    year: int
+    receiver_name: str
+

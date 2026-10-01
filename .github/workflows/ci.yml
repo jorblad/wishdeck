@@ -68,6 +68,8 @@ jobs:
           COOKIE_SECURE: "false"
           # Run the e2e suite against the English UI (the tests assert English strings).
           DEFAULT_LOCALE: "en"
+          # Exercise the optional Gift Exchange module in the e2e suite.
+          ENABLE_GIFT_EXCHANGE: "true"
         run: docker compose -f docker-compose.yml up -d --build
       - name: Wait for API health
         run: |

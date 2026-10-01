@@ -17,6 +17,12 @@
           <q-tooltip>{{ $t('theme.toggle') }}</q-tooltip>
         </q-btn>
         <q-btn v-if="auth.isAuthenticated && auth.isAdmin" flat :label="$t('menu.users')" to="/users" />
+        <q-btn
+          v-if="auth.isAuthenticated && publicSettings.featureGiftExchange"
+          flat
+          :label="$t('giftExchange.title')"
+          to="/gift-exchange"
+        />
         <q-btn v-if="auth.isAuthenticated&& auth.isAdmin" flat :label="$t('menu.settings')" to="/settings" />
         <q-btn v-if="auth.isAuthenticated" flat :label="$t('menu.logout')" @click="onLogout" />
         <q-btn v-else flat :label="$t('menu.login')" to="/login" />
@@ -33,10 +39,12 @@
 import { computed } from 'vue';
 import { Dark } from 'quasar';
 import { useAuthStore } from 'stores/auth';
+import { usePublicSettingsStore } from 'stores/publicSettings';
 import { useRouter } from 'vue-router';
 import { getDarkMode, setDarkMode } from 'boot/dark';
 
 const auth = useAuthStore();
+const publicSettings = usePublicSettingsStore();
 const router = useRouter();
 
 const order = ['auto', 'light', 'dark'];
