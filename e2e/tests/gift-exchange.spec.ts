@@ -29,12 +29,15 @@ test.describe('Gift exchange', () => {
     // Group detail shows the member manager.
     await expect(page.getByText('Participants')).toBeVisible();
 
-    // Add three people across two families (siblings A + cousin B).
+    // Add people across two families (A and B). Two per family keeps the draw
+    // solvable: with 2 in A and 1 in B, every A can only give to the single B,
+    // so no valid derangement exists.
     const addBtn = page.getByRole('button', { name: 'Add member' });
     const people = [
       { name: 'Alice', family: 'A' },
       { name: 'Bob', family: 'A' },
-      { name: 'Cousin', family: 'B' },
+      { name: 'Cousin1', family: 'B' },
+      { name: 'Cousin2', family: 'B' },
     ];
      for (const p of people) {
        await addBtn.click();
