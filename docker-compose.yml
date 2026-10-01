@@ -23,7 +23,7 @@ services:
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       # --- Feature / auth settings (ENV overrides UI) ---
       ENABLE_REGISTRATION: "${ENABLE_REGISTRATION:-true}"
-      ENABLE_GIFT_EXCHANGE: "${ENABLE_GIFT_EXCHANGE:-false}"
+      ENABLE_GIFT_EXCHANGE: "${ENABLE_GIFT_EXCHANGE:-true}"
       DEFAULT_LOCALE: "${DEFAULT_LOCALE:-sv}"
       DEFAULT_VISIBILITY: "${DEFAULT_VISIBILITY:-private}"
       ALLOW_PUBLIC_CLAIMS: "${ALLOW_PUBLIC_CLAIMS:-true}"
