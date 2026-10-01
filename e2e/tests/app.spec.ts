@@ -54,6 +54,7 @@ test.describe('WishDeck public surface', () => {
   test('public wishlist is browsable anonymously from the start page', async ({ page, browser }) => {
     // Register (authenticated context) and create a PUBLIC wishlist via the API.
     const email = `pub_${Date.now()}@example.com`;
+    const title = `Public E2E List ${Date.now()}`;
     await page.goto('/login');
     await page.getByRole('button', { name: 'Create an account' }).click();
     await page.getByLabel('Email').fill(email);
@@ -62,17 +63,19 @@ test.describe('WishDeck public surface', () => {
     await expect(page.getByText('My Wishlists')).toBeVisible({ timeout: 10000 });
 
     const created = await page.request.post('/api/v1/wishlists', {
-      data: { title: 'Public E2E List', visibility: 'public' },
+      data: { title, visibility: 'public' },
     });
     expect(created.ok()).toBeTruthy();
 
     // A logged-out visitor should see public lists on the start page, but the
-    // section is absent of any auth requirement.
+    // section is absent of any auth requirement. Use an exact match on the
+    // heading so the empty-state banner text ("No public wishlists yet.") does
+    // not also match.
     const anon = await browser.newContext();
     const anonPage = await anon.newPage();
     await anonPage.goto('/');
-    await expect(anonPage.getByText('Public wishlists')).toBeVisible();
-    await expect(anonPage.getByText('Public E2E List')).toBeVisible();
+    await expect(anonPage.getByText('Public wishlists', { exact: true })).toBeVisible();
+    await expect(anonPage.getByText(title)).toBeVisible();
     await anon.close();
   });
 });

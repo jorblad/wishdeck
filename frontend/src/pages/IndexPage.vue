@@ -270,7 +270,9 @@ const wishlists = ref([]);
 const giftGroups = ref([]);
 const giftLoading = ref(false);
 const publicWishlists = ref([]);
-const publicLoading = ref(false);
+// Start in the loading state so the empty-state banner ("No public wishlists
+// yet.") cannot flash on first paint before loadPublic() resolves.
+const publicLoading = ref(true);
 const authReady = ref(false);
 const quickAdd = ref({ open: false, wishlistId: '', categories: [] });
 const editDialog = ref({ open: false, wishlist: null });
