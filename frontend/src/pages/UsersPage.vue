@@ -160,7 +160,12 @@ async function save() {
   saving.value = true;
   try {
     if (dialog.value.row) {
-      const payload = { role: form.value.role };
+      const payload = {
+        email: form.value.email,
+        username: form.value.username || null,
+        full_name: form.value.full_name || null,
+        role: form.value.role,
+      };
       if (form.value.password) payload.password = form.value.password;
       await api.put(`/auth/users/${dialog.value.row.id}`, payload);
     } else {
