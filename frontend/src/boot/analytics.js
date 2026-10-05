@@ -16,4 +16,22 @@ export default boot(() => {
     s.id = 'umami-analytics';
     document.head.appendChild(s);
   }
+
+  // Optional Umami session recordings: /recorder.js served from the same
+  // Umami origin as the main script. Gated behind an admin toggle so it is
+  // opt-in and privacy-friendly.
+  const recordingEnabled = store.settings?.UMAMI_RECORDING_ENABLED;
+  if (recordingEnabled && src && id && !document.getElementById('umami-recorder')) {
+    const base = src
+      .replace(/\/script\.js(\?.*)?$/i, '')
+      .replace(/\/recorder\.js(\?.*)?$/i, '')
+      .replace(/\/+$/, '');
+    const recorderSrc = `${base}/recorder.js`;
+    const r = document.createElement('script');
+    r.defer = true;
+    r.src = recorderSrc;
+    r.setAttribute('data-website-id', id);
+    r.id = 'umami-recorder';
+    document.head.appendChild(r);
+  }
 });

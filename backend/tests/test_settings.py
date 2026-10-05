@@ -92,3 +92,19 @@ async def test_umami_settings_public_and_admin_editable(client, monkeypatch):
     assert public["UMAMI_SRC"] == src
     assert public["UMAMI_ID"] == "abc123"
 
+
+async def test_umami_recording_toggle_public_and_admin_editable(client, monkeypatch):
+    # The recordings toggle is public (injected for all visitors) and admin-editable.
+    resp = await client.get("/api/v1/settings/public")
+    assert "UMAMI_RECORDING_ENABLED" in resp.json()
+
+    await register_and_login(client)
+    put = await client.put(
+        "/api/v1/settings",
+        json={"values": {"UMAMI_RECORDING_ENABLED": True}},
+    )
+    assert put.status_code == 200
+
+    public = (await client.get("/api/v1/settings/public")).json()
+    assert public["UMAMI_RECORDING_ENABLED"] is True
+
