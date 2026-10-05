@@ -20,7 +20,7 @@ services:
     environment:
       DEV: "1"
     ports:
-      - "9000:9000"
+      - "9080:9000"
     volumes:
       - ./frontend:/app
       - /app/node_modules   # keep container's alpine node_modules (not the host's)
