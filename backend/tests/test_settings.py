@@ -71,3 +71,24 @@ async def test_public_settings_exposes_default_locale(client, monkeypatch):
     assert "OIDC_CLIENT_SECRET" not in body
     assert "SECRET_KEY" not in body
 
+
+async def test_umami_settings_public_and_admin_editable(client, monkeypatch):
+    # Umami keys are public so the frontend can load the script for all visitors.
+    resp = await client.get("/api/v1/settings/public")
+    body = resp.json()
+    assert "UMAMI_SRC" in body
+    assert "UMAMI_ID" in body
+
+    # The first registrant is admin and can persist the values via the UI.
+    await register_and_login(client)
+    src = "https://analytics.example.com/script.js"
+    put = await client.put(
+        "/api/v1/settings",
+        json={"values": {"UMAMI_SRC": src, "UMAMI_ID": "abc123"}},
+    )
+    assert put.status_code == 200
+
+    public = (await client.get("/api/v1/settings/public")).json()
+    assert public["UMAMI_SRC"] == src
+    assert public["UMAMI_ID"] == "abc123"
+

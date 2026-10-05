@@ -27,7 +27,23 @@
             autogrow
             class="q-mb-sm"
           />
-          <q-input v-model="form.url" :label="t('item.link')" dense outlined class="q-mb-sm" />
+           <q-input v-model="form.url" :label="t('item.link')" dense outlined class="q-mb-sm">
+             <template v-if="form.url" #append>
+               <q-btn
+                 :href="form.url"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 flat
+                 round
+                 dense
+                 icon="open_in_new"
+                 :aria-label="t('item.openLink')"
+                 data-umami-event="wish-link-click"
+                 :data-umami-event-wishlist="wishlistSlug"
+                 :data-umami-event-item="form.title"
+               />
+             </template>
+           </q-input>
           <q-input v-model="form.image_url" :label="t('item.image')" dense outlined class="q-mb-sm" />
           <div class="row q-col-gutter-sm q-mb-sm">
             <div class="col-6">
@@ -101,6 +117,9 @@
               size="sm"
               icon="open_in_new"
               :label="t('item.openLink')"
+              data-umami-event="wish-link-click"
+              :data-umami-event-wishlist="wishlistSlug"
+              :data-umami-event-item="item.title"
             />
           </div>
           <div v-else class="text-grey q-mt-sm">{{ t('item.noLink') }}</div>
@@ -147,6 +166,7 @@ const props = defineProps({
   isOwner: { type: Boolean, default: false },
   allowClaims: { type: Boolean, default: true },
   categories: { type: Array, default: () => [] },
+  wishlistSlug: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue', 'saved', 'deleted', 'archived', 'category-created']);
 
