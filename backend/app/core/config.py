@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     # --- Analytics (Umami) ------------------------------------------------
     UMAMI_SRC: Optional[str] = None  # Umami script URL, e.g. https://analytics.example.com/script.js
     UMAMI_ID: Optional[str] = None  # data-website-id from the Umami dashboard
+    UMAMI_RECORDING_ENABLED: bool = False  # inject Umami /recorder.js for session recordings
 
     @field_validator("DATABASE_URL")
     @classmethod
@@ -145,6 +146,8 @@ SETTING_DEFINITIONS: list[dict[str, Any]] = [
      "label": "Umami script URL", "help": "Self-hosted or cloud Umami script, e.g. https://analytics.example.com/script.js. Leave empty to disable analytics."},
     {"key": "UMAMI_ID", "type": "str", "group": "features", "public": True,
      "label": "Umami website ID", "help": "data-website-id from your Umami dashboard."},
+    {"key": "UMAMI_RECORDING_ENABLED", "type": "bool", "group": "features", "public": True,
+     "label": "Enable Umami recordings", "help": "Inject the Umami /recorder.js session-recording script (requires the Umami script URL and website ID to be set)."},
 ]
 
 # Keys that are NEVER user-editable via the UI (managed by ENV / infra only).
