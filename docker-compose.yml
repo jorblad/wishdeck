@@ -63,7 +63,6 @@ services:
       API_PROXY_TARGET: "http://backend:8000"
     ports:
       - "${HTTP_PORT:-8080}:80"
-      - "9000:9000"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/"]
       interval: 30s

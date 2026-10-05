@@ -250,6 +250,7 @@
       :is-owner="canEdit"
       :allow-claims="wishlist ? wishlist.allow_claims : true"
       :categories="wishlist ? wishlist.categories : []"
+      :wishlist-slug="wishlist ? wishlist.slug : ''"
       @saved="onItemSaved"
       @deleted="onItemDeleted"
       @archived="onItemArchived"

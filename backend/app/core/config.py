@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     # --- Opt-in modules ---------------------------------------------------
     ENABLE_GIFT_EXCHANGE: bool = False  # Secret Santa / gift-exchange module
 
+    # --- Analytics (Umami) ------------------------------------------------
+    UMAMI_SRC: Optional[str] = None  # Umami script URL, e.g. https://analytics.example.com/script.js
+    UMAMI_ID: Optional[str] = None  # data-website-id from the Umami dashboard
+
     @field_validator("DATABASE_URL")
     @classmethod
     def _require_async_driver(cls, v: str) -> str:
@@ -137,6 +141,10 @@ SETTING_DEFINITIONS: list[dict[str, Any]] = [
      "label": "Default currency", "help": "Fallback ISO currency code when none is detected while scraping (e.g. USD)."},
     {"key": "ENABLE_GIFT_EXCHANGE", "type": "bool", "group": "features", "public": True,
      "label": "Enable gift exchange", "help": "Opt-in Secret Santa / gift-exchange module."},
+    {"key": "UMAMI_SRC", "type": "str", "group": "features", "public": True,
+     "label": "Umami script URL", "help": "Self-hosted or cloud Umami script, e.g. https://analytics.example.com/script.js. Leave empty to disable analytics."},
+    {"key": "UMAMI_ID", "type": "str", "group": "features", "public": True,
+     "label": "Umami website ID", "help": "data-website-id from your Umami dashboard."},
 ]
 
 # Keys that are NEVER user-editable via the UI (managed by ENV / infra only).
