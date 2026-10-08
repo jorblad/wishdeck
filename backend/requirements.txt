@@ -1,4 +1,4 @@
-fastapi==0.142.4
+fastapi==0.143.0
 uvicorn[standard]==0.54.0
 sqlalchemy[asyncio]==2.1.4
 alembic==1.20.0
@@ -8,7 +8,7 @@ aiosqlite==0.22.1
 # dialect. A bare CNPG `postgresql://` URI is rewritten to that dialect in
 # app/core/config.py, so the operator-provided secret can be used as-is.
 psycopg[binary]==3.3.6
-pydantic==2.13.5
+pydantic==2.14.0
 pydantic-settings==2.15.0
 python-multipart==0.0.32
 httpx2==2.13.1
