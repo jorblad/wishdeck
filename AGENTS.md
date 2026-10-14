@@ -104,16 +104,24 @@ If you cannot run a check locally, say so and note it in the PR.
 
 ## Releases
 
-- Releases are produced by `.github/workflows/release.yml`. A release is cut when
-  a PR merged to `main` carries a `major` / `minor` / `patch` label (or by
-  running the workflow manually with a bump choice).
-- The changelog is generated from the merged commits and **categorized by
-  Conventional Commits** (Features, Bug Fixes, Breaking Changes, Dependencies,
-  Other). Write commit messages accordingly so the notes are accurate.
-- Every merged PR also gets an automatic "Release Notes" comment summarizing its
-  conventional commits.
-- Don't bump versions or cut releases by hand — let the workflow do it once the
-  PR is labeled and merged.
+- Releases are produced by [`googleapis/release-please-action`](https://github.com/googleapis/release-please-action)
+  via `.github/workflows/release.yml`. It parses Conventional Commits on `main`
+  and **maintains a single "release PR"** (`chore(main): release X.Y.Z`) that
+  accumulates pending changes and regenerates the changelog.
+- To ship a release, **merge the release PR**. The action then bumps the version
+  in `frontend/package.json` and `backend/app/core/config.py` (`APP_VERSION`),
+  tags `vX.Y.Z`, and creates the GitHub release with categorized notes. The
+  `build` job in the same workflow builds/pushes the `backend` + `frontend`
+  images to `ghcr.io` and attaches the browser-extension zip to the release.
+- Version bumps follow Conventional Commits: `feat:` → minor, `fix:` → patch,
+  `feat!`/`fix!`/etc. with `!` or a `BREAKING CHANGE:` footer → major. To force
+  a specific version, add a `Release-As: X.Y.Z` footer to a commit body.
+- **Dependency updates count as releasable.** Renovate opens semantic
+  `chore(deps): …` PRs (see `renovate.json`); those land in the "⬆️
+  Dependencies" changelog section and trigger a release just like features/fixes.
+- Don't bump versions or cut releases by hand — let release-please do it. The
+  workflow authenticates with the `RELEASE_PLEASE_TOKEN` PAT so the release PR
+  and release trigger CI normally.
 
 ## General
 

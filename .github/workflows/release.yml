@@ -1,20 +1,8 @@
 name: Release
 
 on:
-  pull_request:
+  push:
     branches: [main]
-    types: [closed]
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: "Semantic version bump"
-        required: true
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
 
 permissions:
   contents: write
@@ -25,129 +13,36 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  release:
-    name: Bump, tag, build & release
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.merged == true &&
-       (contains(github.event.pull_request.labels.*.name, 'major') ||
-        contains(github.event.pull_request.labels.*.name, 'minor') ||
-        contains(github.event.pull_request.labels.*.name, 'patch')))
+  release-please:
+    name: Release PR & GitHub release
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.semver.outputs.tag }}
+      release_created: ${{ steps.release.outputs['frontend--release_created'] }}
+      tag_name: ${{ steps.release.outputs['frontend--tag_name'] }}
+      version: ${{ steps.release.outputs['frontend--version'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build:
+    name: Build & publish images and extension
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      VERSION: ${{ needs.release-please.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ env.TAG }}
           fetch-depth: 0
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine bump type
-        id: bump
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            LABELS='${{ toJSON(github.event.pull_request.labels) }}'
-            if echo "$LABELS" | grep -q '"name":"major"'; then
-              echo "type=major" >> "$GITHUB_OUTPUT"
-            elif echo "$LABELS" | grep -q '"name":"minor"'; then
-              echo "type=minor" >> "$GITHUB_OUTPUT"
-            elif echo "$LABELS" | grep -q '"name":"patch"'; then
-              echo "type=patch" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "type=${{ github.event.inputs.bump }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Compute next version
-        id: semver
-        run: |
-          LATEST=$(git tag --list 'v*.*.*' --sort=-v:refname | head -n1)
-          if [ -z "$LATEST" ]; then
-            NEW="1.0.0"
-            echo "No previous tag found — first release will be 1.0.0"
-          else
-            BASE="${LATEST#v}"
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
-            case "${{ steps.bump.outputs.type }}" in
-              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-              patch) PATCH=$((PATCH + 1)) ;;
-            esac
-            NEW="$MAJOR.$MINOR.$PATCH"
-            echo "Bumping $LATEST -> v$NEW (${{ steps.bump.outputs.type }})"
-          fi
-          echo "version=$NEW" >> "$GITHUB_OUTPUT"
-          echo "tag=v$NEW" >> "$GITHUB_OUTPUT"
-
-      - name: Bump version in source
-        run: |
-          NEW="${{ steps.semver.outputs.version }}"
-          sed -i -E "s/(APP_VERSION: str = \")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW\2/" backend/app/core/config.py
-          sed -i -E "s/(\"version\": \")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW\2/" frontend/package.json
-
-      - name: Commit, tag & push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add backend/app/core/config.py frontend/package.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): ${{ steps.semver.outputs.tag }}"
-            git push origin HEAD:main
-          else
-            echo "Version files already at ${{ steps.semver.outputs.version }} — nothing to commit."
-          fi
-          git tag -a "${{ steps.semver.outputs.tag }}" -m "Release ${{ steps.semver.outputs.tag }}"
-          git push origin "${{ steps.semver.outputs.tag }}"
-
-      - name: Generate release notes
-        id: notes
-        run: |
-          TAG="${{ steps.semver.outputs.tag }}"
-          git fetch --tags
-          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
-          if [ -z "$PREV" ]; then
-            RANGE="$TAG"
-            COMMITS=$(git log --pretty=format:'%s|||%h' -n 50 "$RANGE")
-          else
-            RANGE="${PREV}..${TAG}"
-            COMMITS=$(git log --pretty=format:'%s|||%h' "$RANGE")
-          fi
-
-          FEATURES=""; FIXES=""; BREAKING=""; DOCS=""; OTHER=""; DEPS=""
-          while IFS= read -r line; do
-            [ -z "$line" ] && continue
-            MSG="${line%%|||*}"
-            SHA="${line##*|||}"
-            entry="- ${MSG} (\`${SHA}\`)"
-            if echo "$MSG" | grep -qiE '^breaking|^BREAKING'; then
-              BREAKING+="${entry}"$'\n'
-            elif echo "$MSG" | grep -qiE '^feat(\(|:)'; then
-              FEATURES+="${entry}"$'\n'
-            elif echo "$MSG" | grep -qiE '^fix(\(|:)'; then
-              FIXES+="${entry}"$'\n'
-            elif echo "$MSG" | grep -qiE '^docs(\(|:)'; then
-              DOCS+="${entry}"$'\n'
-            elif echo "$MSG" | grep -qiE '^Update |^Bump |^Pin |^(chore|build|fix)\(deps'; then
-              DEPS+="${entry}"$'\n'
-            else
-              OTHER+="${entry}"$'\n'
-            fi
-          done <<< "$COMMITS"
-
-          NOTES_FILE="$(mktemp)"
-          {
-            if [ -n "$BREAKING" ]; then echo "## ⚠️ Breaking Changes"; echo ""; printf '%s\n' "$BREAKING"; fi
-            if [ -n "$FEATURES" ]; then echo "## ✨ Features"; echo ""; printf '%s\n' "$FEATURES"; fi
-            if [ -n "$FIXES" ]; then echo "## 🐛 Bug Fixes"; echo ""; printf '%s\n' "$FIXES"; fi
-            if [ -n "$DOCS" ]; then echo "## 📝 Documentation"; echo ""; printf '%s\n' "$DOCS"; fi
-            if [ -n "$DEPS" ]; then echo "## ⬆️ Dependencies"; echo ""; printf '%s\n' "$DEPS"; fi
-            if [ -n "$OTHER" ]; then echo "## 📦 Other Changes"; echo ""; printf '%s\n' "$OTHER"; fi
-            if [ -z "$BREAKING$FEATURES$FIXES$DOCS$DEPS$OTHER" ]; then echo "No notable changes"; fi
-          } > "$NOTES_FILE"
-
-          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -167,7 +62,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ steps.semver.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
 
       - name: Build & push frontend image
@@ -177,76 +72,14 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ steps.semver.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ github.repository }}/frontend:latest
 
       - name: Build extension zip
         working-directory: browser-extension
         run: node build.js
 
-      - name: Create GitHub release
+      - name: Upload extension to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.semver.outputs.tag }}"
-          NOTES="${{ steps.notes.outputs.notes_file }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TAG" --notes-file "$NOTES" --target "$(git rev-parse HEAD)"
-          else
-            gh release create "$TAG" --title "$TAG" --notes-file "$NOTES" --target "$(git rev-parse HEAD)" browser-extension/dist/wishdeck-extension.zip
-          fi
-
-  pr-release-notes:
-    name: Post release notes comment
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Generate PR summary
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          COMMITS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits?per_page=100" \
-            --jq '.[] | "\(.commit.message | split("\n")[0])|\(.sha[0:7])"')
-
-          FEATURES=""; FIXES=""; BREAKING=""; DOCS=""; OTHER=""; DEPS=""
-          while IFS='|' read -r msg sha; do
-            [ -z "$msg" ] && continue
-            entry="- ${msg} (\`${sha}\`)"
-            if echo "$msg" | grep -qiE '^breaking|^BREAKING'; then
-              BREAKING+="${entry}"$'\n'
-            elif echo "$msg" | grep -qiE '^feat(\(|:)'; then
-              FEATURES+="${entry}"$'\n'
-            elif echo "$msg" | grep -qiE '^fix(\(|:)'; then
-              FIXES+="${entry}"$'\n'
-            elif echo "$msg" | grep -qiE '^docs(\(|:)'; then
-              DOCS+="${entry}"$'\n'
-            elif echo "$msg" | grep -qiE '^Update |^Bump |^Pin |^(chore|build|fix)\(deps'; then
-              DEPS+="${entry}"$'\n'
-            else
-              OTHER+="${entry}"$'\n'
-            fi
-          done <<< "$COMMITS"
-
-          BODY="## Release Notes for v${{ github.event.pull_request.number }}"$'\n'
-          [ -n "$BREAKING" ] && BODY+=$'\n'"### ⚠️ Breaking Changes"$'\n'"${BREAKING}"
-          [ -n "$FEATURES" ] && BODY+=$'\n'"### ✨ Features"$'\n'"${FEATURES}"
-          [ -n "$FIXES" ] && BODY+=$'\n'"### 🐛 Bug Fixes"$'\n'"${FIXES}"
-          [ -n "$DOCS" ] && BODY+=$'\n'"### 📝 Documentation"$'\n'"${DOCS}"
-          [ -n "$DEPS" ] && BODY+=$'\n'"### ⬆️ Dependencies"$'\n'"${DEPS}"
-          [ -n "$OTHER" ] && BODY+=$'\n'"### 📦 Other Changes"$'\n'"${OTHER}"
-          if [ -z "$BREAKING$FEATURES$FIXES$DOCS$DEPS$OTHER" ]; then BODY+=$'\n'"No conventional commits found."; fi
-          BODY+=$'\n'$'\n'"**Merged:** ${{ github.event.pull_request.merged_at }}"$'\n'"**Commits:** $(echo "$COMMITS" | grep -c .)"
-
-          EXISTING=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select(.user.type=="Bot" and (.body | contains("## Release Notes for v"))) | .id' | head -n1)
-          if [ -n "$EXISTING" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING}" -f "body=${BODY}"
-          else
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f "body=${BODY}"
-          fi
+        run: gh release upload "${{ env.TAG }}" browser-extension/dist/wishdeck-extension.zip
