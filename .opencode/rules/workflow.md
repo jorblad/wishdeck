@@ -24,10 +24,14 @@ lives in `AGENTS.md`.
   secrets, `.env`, or credentials. No build artifacts.
 
 ## Releases
-- `.github/workflows/release.yml` cuts a release when a merged PR to `main` has a
-  `major`/`minor`/`patch` label (or via manual dispatch). Notes are generated
-  from Conventional Commits and categorized; each merged PR also gets a release
-  notes comment. Don't bump versions by hand.
+- `.github/workflows/release.yml` uses `googleapis/release-please-action`. It
+  keeps a single "release PR" (`chore(main): release X.Y.Z`) on `main` and, when
+  merged, bumps `frontend/package.json` + `backend/app/core/config.py`, tags
+  `vX.Y.Z`, and creates the GitHub release (notes from Conventional Commits,
+  Dependencies section included). The same workflow builds/pushes `backend` +
+  `frontend` images to `ghcr.io` and attaches the browser-extension zip.
+- Versioning: `feat:` → minor, `fix:` → patch, `feat!`/`fix!`/BREAKING → major.
+  Renovate `chore(deps):` PRs are releasable. Don't bump versions by hand.
 
 ## Pre-commit / pre-PR checks (match CI)
 - Backend: `cd backend && pytest -q`

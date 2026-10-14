@@ -1,24 +1,29 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
   "labels": ["dependencies"],
   "separateMajorMinor": true,
   "packageRules": [
     {
       "description": "Group all backend (Python) dependency updates into a single PR",
       "matchFileNames": ["backend/**"],
-      "groupName": "backend",
+      "groupName": "backend dependencies",
       "groupSlug": "backend"
     },
     {
       "description": "Group all frontend (npm) dependency updates into a single PR",
       "matchFileNames": ["frontend/**"],
-      "groupName": "frontend",
+      "groupName": "frontend dependencies",
       "groupSlug": "frontend"
     }
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "groupName": "lockfile-maintenance"
+    "groupName": "lockfile maintenance",
+    "groupSlug": "lockfile-maintenance"
   }
 }
