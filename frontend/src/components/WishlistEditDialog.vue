@@ -176,7 +176,7 @@ async function submit() {
   } catch (e) {
     $q.notify({
       type: 'negative',
-      message: e.response?.data?.detail || 'Error',
+      message: e.response?.data?.detail || t('common.error'),
     });
   } finally {
     saving.value = false;

@@ -256,7 +256,7 @@ async function submit() {
     $q.notify({ type: 'positive', message: t('item.saved') });
     close();
   } catch (e) {
-    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('common.error') });
   } finally {
     saving.value = false;
   }

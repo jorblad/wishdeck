@@ -115,8 +115,8 @@ const dialog = ref({ open: false, row: null });
 const form = ref({ email: '', username: '', full_name: '', password: '', role: 'user' });
 
 const roleOptions = [
-  { label: 'User', value: 'user' },
-  { label: 'Admin', value: 'admin' },
+  { label: t('users.userRole'), value: 'user' },
+  { label: t('users.adminRole'), value: 'admin' },
 ];
 
 const columns = [
@@ -134,7 +134,7 @@ async function load() {
     const { data } = await api.get('/auth/users');
     users.value = data;
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     loading.value = false;
   }
@@ -181,7 +181,7 @@ async function save() {
     $q.notify({ type: 'positive', message: t('users.saved') });
     await load();
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     saving.value = false;
   }
@@ -192,7 +192,7 @@ async function setActive(row, value) {
     await api.put(`/auth/users/${row.id}`, { is_active: value });
     row.is_active = value;
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   }
 }
 
@@ -208,7 +208,7 @@ async function remove(row) {
       $q.notify({ type: 'positive', message: t('users.deleted') });
       await load();
     } catch (e) {
-      $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+      $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
     }
   });
 }

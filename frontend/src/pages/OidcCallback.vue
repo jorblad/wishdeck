@@ -58,14 +58,14 @@ onMounted(async () => {
   }
   if (!code) {
     status.value = 'error';
-    message.value = 'Missing authorization code';
+    message.value = t('login.missingAuthorizationCode');
     return;
   }
 
   const savedState = sessionStorage.getItem('oidc_state');
   if (state && savedState && state !== savedState) {
     status.value = 'error';
-    message.value = 'Invalid OIDC state';
+    message.value = t('login.invalidOidcState');
     return;
   }
   sessionStorage.removeItem('oidc_state');
@@ -79,7 +79,7 @@ onMounted(async () => {
     window.location.href = '/';
   } catch (e) {
     status.value = 'error';
-    message.value = e?.response?.data?.detail || 'OIDC login failed';
+    message.value = e?.response?.data?.detail || t('login.oidcLoginFailed');
   }
 });
 </script>

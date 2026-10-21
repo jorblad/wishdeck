@@ -6,7 +6,7 @@
         round
         dense
         icon="arrow_back"
-        :aria-label="t('back')"
+        :aria-label="t('common.back')"
         @click="goBack"
       />
       <div class="text-h5">{{ t('settings.title') }}</div>
@@ -219,7 +219,7 @@ async function save() {
     }
     $q.notify({ type: 'positive', message: t('settings.saved') });
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     saving.value = false;
   }
