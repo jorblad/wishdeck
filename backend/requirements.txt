@@ -1,4 +1,4 @@
-fastapi==0.151.0
+fastapi==0.156.4
 uvicorn[standard]==0.54.0
 sqlalchemy[asyncio]==2.1.5
 alembic==1.20.0
@@ -9,7 +9,7 @@ aiosqlite==0.22.1
 # app/core/config.py, so the operator-provided secret can be used as-is.
 psycopg[binary]==3.3.6
 pydantic==2.14.1
-pydantic-settings==2.16.0
+pydantic-settings==2.16.1
 python-multipart==0.0.32
 httpx2==2.15.1
 beautifulsoup4==4.15.0
