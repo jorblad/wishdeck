@@ -1,0 +1,10 @@
+{
+  "include-component-in-tag": false,
+  "release-type": "node",
+  "packages": {
+    "frontend": {
+      "release-type": "node",
+      "package-name": ""
+    }
+  }
+}
