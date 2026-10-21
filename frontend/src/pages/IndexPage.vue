@@ -10,8 +10,8 @@
       <div class="text-h6">{{ t('index.welcomeTitle') }}</div>
       <div class="q-mt-xs">{{ t('index.welcomeText') }}</div>
       <div class="q-mt-sm row q-gutter-sm">
-        <q-btn color="white" text-color="primary" :label="t('auth.signIn')" @click="router.push('/login')" />
-        <q-btn outline color="white" :label="t('auth.createAnAccount')" @click="router.push('/login')" />
+        <q-btn color="white" text-color="primary" :label="t('login.signIn')" @click="router.push('/login')" />
+        <q-btn outline color="white" :label="t('login.createAnAccount')" @click="router.push('/login')" />
       </div>
     </q-banner>
 
@@ -362,7 +362,7 @@ async function openEdit(wl) {
 }
 function onAdded() {
   // Item was created; take the user to the wishlist so they can see it.
-  $q.notify({ type: 'positive', message: 'Item added' });
+  $q.notify({ type: 'positive', message: t('quickAdd.added') });
   router.push(`/wishlists/owner/${quickAdd.value.wishlistId}`);
 }
 function onSaved() {
@@ -397,7 +397,7 @@ async function toggleArchive(wl) {
     wl.archived = !wl.archived;
     $q.notify({ type: 'positive', message: wl.archived ? t('index.listArchived') : t('index.listUnarchived') });
   } catch (e) {
-    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('common.error') });
   }
 }
 function removeWishlist(wl) {
@@ -412,7 +412,7 @@ function removeWishlist(wl) {
       wishlists.value = wishlists.value.filter((w) => w.id !== wl.id);
       $q.notify({ type: 'positive', message: t('index.listDeleted') });
     } catch (e) {
-      $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+      $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('common.error') });
     }
   });
 }

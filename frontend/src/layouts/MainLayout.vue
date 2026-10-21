@@ -8,7 +8,7 @@
           dense
           round
           icon="menu"
-          aria-label="Menu"
+          :aria-label="$t('menu.title')"
           @click="drawer = !drawer"
         />
         <q-toolbar-title>

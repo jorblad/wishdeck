@@ -371,7 +371,7 @@ async function toggleArchive() {
     wishlist.value.archived = !wishlist.value.archived;
     $q.notify({ type: 'positive', message: wishlist.value.archived ? t('index.listArchived') : t('index.listUnarchived') });
   } catch (e) {
-    $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('common.error') });
   }
 }
 
@@ -387,7 +387,7 @@ function removeWishlist() {
       $q.notify({ type: 'positive', message: t('index.listDeleted') });
       router.push('/');
     } catch (e) {
-      $q.notify({ type: 'negative', message: e?.response?.data?.detail || 'Error' });
+      $q.notify({ type: 'negative', message: e?.response?.data?.detail || t('common.error') });
     }
   });
 }

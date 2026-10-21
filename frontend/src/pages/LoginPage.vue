@@ -42,7 +42,7 @@
                 outline
                 color="secondary"
                 class="full-width"
-                :label="`Continue with ${oidc.name || t('login.sso')}`"
+                :label="t('login.continueWith', { provider: oidc.name || t('login.sso') })"
                 @click="startOidc"
               />
             </template>
@@ -149,8 +149,9 @@ async function startOidc() {
       state,
     });
     window.location.href = `${authEndpoint}?${params.toString()}`;
-  } catch (e) {
-    $q.notify({ type: 'negative', message: e.message || 'Failed to start OIDC login' });
+  } catch (error) {
+    console.error(error);
+    $q.notify({ type: 'negative', message: t('login.oidcStartFailed') });
   }
 }
 </script>

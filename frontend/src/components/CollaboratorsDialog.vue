@@ -149,7 +149,7 @@ async function loadShares() {
     const { data } = await api.get(`/wishlists/${props.wishlistId}/shares`);
     shares.value = data;
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   }
 }
 
@@ -184,7 +184,7 @@ async function add() {
     emit('changed');
     $q.notify({ type: 'positive', message: t('collaborators.added') });
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     adding.value = false;
   }
@@ -201,7 +201,7 @@ async function setRole(share, role) {
     share.can_manage = role === 'manager';
     emit('changed');
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     busy.value = null;
   }
@@ -214,7 +214,7 @@ async function remove(share) {
     shares.value = shares.value.filter((s) => s.id !== share.id);
     emit('changed');
   } catch (e) {
-    $q.notify({ type: 'negative', message: e.response?.data?.detail || 'Error' });
+    $q.notify({ type: 'negative', message: e.response?.data?.detail || t('common.error') });
   } finally {
     busy.value = null;
   }
