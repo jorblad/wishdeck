@@ -44,6 +44,7 @@ export default {
   },
   menu: {
     title: 'Meny',
+    overview: 'Översikt',
     settings: 'Inställningar',
     newWishlist: 'Ny önskelista',
     users: 'Användare',

@@ -44,6 +44,7 @@ export default {
   },
   menu: {
     title: 'Menu',
+    overview: 'Overview',
     settings: 'Settings',
     newWishlist: 'New wishlist',
     users: 'Users',

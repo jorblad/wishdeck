@@ -51,32 +51,36 @@
       <q-list>
         <q-item-label header class="text-white">{{ $t('menu.title') }}</q-item-label>
 
-        <q-item v-if="auth.isAuthenticated && auth.isAdmin" clickable v-close-popup to="/users">
+        <q-item clickable to="/" @click="drawer = false">
+          <q-item-section avatar><q-icon name="home" /></q-item-section>
+          <q-item-section>{{ $t('menu.overview') }}</q-item-section>
+        </q-item>
+        <q-item v-if="auth.isAuthenticated && auth.isAdmin" clickable to="/users" @click="drawer = false">
           <q-item-section avatar><q-icon name="people" /></q-item-section>
           <q-item-section>{{ $t('menu.users') }}</q-item-section>
         </q-item>
-        <q-item v-if="auth.isAuthenticated" clickable v-close-popup to="/profile">
+        <q-item v-if="auth.isAuthenticated" clickable to="/profile" @click="drawer = false">
           <q-item-section avatar><q-icon name="person" /></q-item-section>
           <q-item-section>{{ $t('menu.profile') }}</q-item-section>
         </q-item>
         <q-item
           v-if="auth.isAuthenticated && publicSettings.featureGiftExchange"
           clickable
-          v-close-popup
           to="/gift-exchange"
+          @click="drawer = false"
         >
           <q-item-section avatar><q-icon name="card_giftcard" /></q-item-section>
           <q-item-section>{{ $t('giftExchange.title') }}</q-item-section>
         </q-item>
-        <q-item v-if="auth.isAuthenticated && auth.isAdmin" clickable v-close-popup to="/settings">
+        <q-item v-if="auth.isAuthenticated && auth.isAdmin" clickable to="/settings" @click="drawer = false">
           <q-item-section avatar><q-icon name="settings" /></q-item-section>
           <q-item-section>{{ $t('menu.settings') }}</q-item-section>
         </q-item>
-        <q-item v-if="auth.isAuthenticated" clickable v-close-popup @click="onLogout">
+        <q-item v-if="auth.isAuthenticated" clickable @click="onLogout">
           <q-item-section avatar><q-icon name="logout" /></q-item-section>
           <q-item-section>{{ $t('menu.logout') }}</q-item-section>
         </q-item>
-        <q-item v-else clickable v-close-popup to="/login">
+        <q-item v-else clickable to="/login" @click="drawer = false">
           <q-item-section avatar><q-icon name="login" /></q-item-section>
           <q-item-section>{{ $t('menu.login') }}</q-item-section>
         </q-item>
@@ -125,6 +129,7 @@ function cycleDark() {
 }
 
 async function onLogout() {
+  drawer.value = false;
   await auth.logout();
   router.push('/login');
 }

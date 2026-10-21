@@ -22,6 +22,19 @@ test.describe('WishDeck public surface', () => {
     await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
   });
 
+  test('mobile navigation includes overview and closes after navigation', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Menu' }).click();
+    const drawer = page.locator('.q-drawer');
+    await expect(drawer.getByText('Overview')).toBeVisible();
+    await drawer.getByText('Login', { exact: true }).click();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(drawer).not.toBeVisible();
+  });
+
   test('settings page is reachable only when authenticated', async ({ page }) => {
     await page.goto('/settings');
     // Unauthenticated users are redirected to /login.
