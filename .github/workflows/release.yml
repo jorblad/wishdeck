@@ -3,6 +3,13 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      recover_merged_release:
+        description: Recover the pending v1.4.0 release from merged PR #81
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -16,6 +23,7 @@ jobs:
   release-please:
     name: Release PR & GitHub release
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.ref == 'refs/heads/main' && inputs.recover_merged_release)
     outputs:
       release_created: ${{ steps.release.outputs['frontend--release_created'] }}
       tag_name: ${{ steps.release.outputs['frontend--tag_name'] }}
@@ -25,8 +33,9 @@ jobs:
         id: release
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          config-file: .release-please-config.json
+          config-file: ${{ inputs.recover_merged_release && '.release-please-recovery-config.json' || '.release-please-config.json' }}
           manifest-file: .release-please-manifest.json
+          skip-github-pull-request: ${{ inputs.recover_merged_release }}
 
   build:
     name: Build & publish images and extension
