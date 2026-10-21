@@ -32,7 +32,8 @@ jobs:
       - uses: googleapis/release-please-action@v5
         id: release
         with:
-          token: ${{ inputs.recover_merged_release && secrets.GITHUB_TOKEN || secrets.RELEASE_PLEASE_TOKEN }}
+          # Recovery targets an older commit; GitHub may require Workflows: write to create that release.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: ${{ inputs.recover_merged_release && '.release-please-recovery-config.json' || '.release-please-config.json' }}
           manifest-file: .release-please-manifest.json
           skip-github-pull-request: ${{ inputs.recover_merged_release }}
