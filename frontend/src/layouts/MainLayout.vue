@@ -51,7 +51,7 @@
       <q-list>
         <q-item-label header class="text-white">{{ $t('menu.title') }}</q-item-label>
 
-        <q-item clickable to="/" @click="drawer = false">
+        <q-item clickable exact to="/" @click="drawer = false">
           <q-item-section avatar><q-icon name="home" /></q-item-section>
           <q-item-section>{{ $t('menu.overview') }}</q-item-section>
         </q-item>
