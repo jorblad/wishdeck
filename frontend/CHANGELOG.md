@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.2](https://github.com/jorblad/wishdeck/compare/v1.4.1...v1.4.2) (2026-10-22)
+
+
+### 🐛 Bug Fixes
+
+* **layout:** only highlight overview on exact home route ([bae7f76](https://github.com/jorblad/wishdeck/commit/bae7f76523e84c23eba567faa4c08a53efddfe2a))
+* **layout:** only highlight overview on exact home route ([247fe7c](https://github.com/jorblad/wishdeck/commit/247fe7cbedfc91b4265dc68454ec8a4ab613dccb))
+
 ## [1.4.1](https://github.com/jorblad/wishdeck/compare/v1.4.0...v1.4.1) (2026-10-22)
 
 
