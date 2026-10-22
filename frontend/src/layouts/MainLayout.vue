@@ -134,3 +134,18 @@ async function onLogout() {
   router.push('/login');
 }
 </script>
+
+<!--
+  Quasar colors an active q-item with `var(--q-primary)`. Since the drawer
+  itself uses `bg-primary`, the active item's text/icon would become the same
+  color as the background and render invisible. Force the active item to stay
+  white (readable on the primary band in both light and dark themes) and give
+  it a subtle highlight so the current page is easy to spot.
+-->
+<style scoped>
+.q-drawer .q-item.q-router-link--active,
+.q-drawer .q-item.q-item--active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+</style>
