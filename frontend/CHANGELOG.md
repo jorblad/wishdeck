@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/jorblad/wishdeck/compare/v1.4.0...v1.4.1) (2026-10-22)
+
+
+### 🐛 Bug Fixes
+
+* **layout:** keep active menu item visible in drawer ([c96b2a4](https://github.com/jorblad/wishdeck/commit/c96b2a4d189b51ca01cb225f721af02f7b73830c))
+* **layout:** keep active menu item visible in drawer ([1eea040](https://github.com/jorblad/wishdeck/commit/1eea040837055ee02e95c32cd3119dcd88c9ba3c))
+
 ## [1.4.0](https://github.com/jorblad/wishdeck/compare/v1.3.5...v1.4.0) (2026-10-21)
 
 
