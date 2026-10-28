@@ -9,7 +9,7 @@ aiosqlite==0.22.1
 # app/core/config.py, so the operator-provided secret can be used as-is.
 psycopg[binary]==3.3.6
 pydantic==2.14.1
-pydantic-settings==2.16.1
+pydantic-settings==2.16.2
 python-multipart==0.0.32
 httpx2==2.16.0
 beautifulsoup4==4.15.0
