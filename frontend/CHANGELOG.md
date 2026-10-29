@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.3](https://github.com/jorblad/wishdeck/compare/v1.4.2...v1.4.3) (2026-10-29)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency axios to v1.21.0 ([bf3b556](https://github.com/jorblad/wishdeck/commit/bf3b556a8ed2c30855f709d2aefd5952e45379fa))
+* **deps:** update dependency axios to v1.21.0 ([65ac1fe](https://github.com/jorblad/wishdeck/commit/65ac1fe02570bfafbd97d8f8310b90b07e5d7f64))
+
 ## [1.4.2](https://github.com/jorblad/wishdeck/compare/v1.4.1...v1.4.2) (2026-10-22)
 
 
