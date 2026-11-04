@@ -1,6 +1,6 @@
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
-sqlalchemy[asyncio]==2.1.6
+sqlalchemy[asyncio]==2.1.8
 alembic==1.20.1
 aiosqlite==0.22.1
 # Async-native PostgreSQL driver (psycopg 3). SQLAlchemy's asyncio engine
