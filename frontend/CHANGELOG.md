@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.3](https://github.com/jorblad/wishdeck/compare/v1.4.2...v1.4.3) (2026-11-06)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency axios to v1.21.0 ([bf3b556](https://github.com/jorblad/wishdeck/commit/bf3b556a8ed2c30855f709d2aefd5952e45379fa))
+* **deps:** update dependency axios to v1.21.0 ([65ac1fe](https://github.com/jorblad/wishdeck/commit/65ac1fe02570bfafbd97d8f8310b90b07e5d7f64))
+* **deps:** update dependency vue to v3.5.45 ([#130](https://github.com/jorblad/wishdeck/issues/130)) ([cbeac8f](https://github.com/jorblad/wishdeck/commit/cbeac8fc69db2877e814b1ad2df49722fc7424a8))
+* **deps:** update dependency vue-i18n to v11.4.17 ([6639b02](https://github.com/jorblad/wishdeck/commit/6639b023f4edf87e83b01b18e641c25da0b91b5c))
+* **deps:** update dependency vue-i18n to v11.4.17 ([c9ab1c9](https://github.com/jorblad/wishdeck/commit/c9ab1c9d1a8d2c6a9eb17faf102aacd784a3928a))
+* **deps:** update dependency vue-i18n to v11.4.18 ([#127](https://github.com/jorblad/wishdeck/issues/127)) ([4576495](https://github.com/jorblad/wishdeck/commit/4576495f5ad37f7419dfdfa5de45d071409a6e8a))
+
 ## [1.4.2](https://github.com/jorblad/wishdeck/compare/v1.4.1...v1.4.2) (2026-10-22)
 
 
