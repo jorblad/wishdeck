@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.3](https://github.com/jorblad/wishdeck/compare/v1.4.2...v1.4.3) (2026-11-14)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency axios to v1.21.0 ([bf3b556](https://github.com/jorblad/wishdeck/commit/bf3b556a8ed2c30855f709d2aefd5952e45379fa))
+* **deps:** update dependency axios to v1.21.0 ([65ac1fe](https://github.com/jorblad/wishdeck/commit/65ac1fe02570bfafbd97d8f8310b90b07e5d7f64))
+* **deps:** update dependency vue to v3.5.45 ([#130](https://github.com/jorblad/wishdeck/issues/130)) ([cbeac8f](https://github.com/jorblad/wishdeck/commit/cbeac8fc69db2877e814b1ad2df49722fc7424a8))
+* **deps:** update dependency vue-i18n to v11.4.17 ([6639b02](https://github.com/jorblad/wishdeck/commit/6639b023f4edf87e83b01b18e641c25da0b91b5c))
+* **deps:** update dependency vue-i18n to v11.4.17 ([c9ab1c9](https://github.com/jorblad/wishdeck/commit/c9ab1c9d1a8d2c6a9eb17faf102aacd784a3928a))
+* **deps:** update dependency vue-i18n to v11.4.18 ([#127](https://github.com/jorblad/wishdeck/issues/127)) ([4576495](https://github.com/jorblad/wishdeck/commit/4576495f5ad37f7419dfdfa5de45d071409a6e8a))
+* **deps:** update dependency vue-i18n to v11.4.20 ([#143](https://github.com/jorblad/wishdeck/issues/143)) ([98e4493](https://github.com/jorblad/wishdeck/commit/98e4493d9fb68227df03525968a90ff7ffab118a))
+* **deps:** update dependency vue-router to v5.5.0 ([#135](https://github.com/jorblad/wishdeck/issues/135)) ([3deca06](https://github.com/jorblad/wishdeck/commit/3deca06b785e5971060bdb6704d32e6c31627ad1))
+* **deps:** update dependency vue-router to v5.5.1 ([#142](https://github.com/jorblad/wishdeck/issues/142)) ([f8eb1e0](https://github.com/jorblad/wishdeck/commit/f8eb1e0705b172a9858f4933b9bbe6cf018bca6a))
+* **deps:** update frontend dependencies ([#133](https://github.com/jorblad/wishdeck/issues/133)) ([ea05af9](https://github.com/jorblad/wishdeck/commit/ea05af903cd9ef78e5c4fa35755e9b387eb8ff35))
+* **deps:** update frontend dependencies ([#138](https://github.com/jorblad/wishdeck/issues/138)) ([f401822](https://github.com/jorblad/wishdeck/commit/f401822cdeedccbec01af0376315a7d9ba240790))
+
 ## [1.4.2](https://github.com/jorblad/wishdeck/compare/v1.4.1...v1.4.2) (2026-10-22)
 
 
